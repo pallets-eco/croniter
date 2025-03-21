@@ -15,12 +15,23 @@ croniter provides iteration for the datetime object with a cron like format.
      \___|_|  \___/|_| |_|_|\__\___|_|
 
 
-Website: https://github.com/kiorky/croniter
+Website: https://github.com/pallets-eco/croniter
 
 Build Badge
 ===========
-.. image:: https://github.com/kiorky/croniter/actions/workflows/cicd.yml/badge.svg
-    :target: https://github.com/kiorky/croniter/actions/workflows/cicd.yml
+.. image:: https://github.com/pallets-eco/croniter/actions/workflows/cicd.yml/badge.svg
+    :target: https://github.com/pallets-eco/croniter/actions/workflows/cicd.yml
+
+
+Pallets Community Ecosystem
+===========================
+
+.. important::
+   This project is part of the Pallets Community Ecosystem. Pallets is the open
+   source organization that maintains Flask; Pallets-Eco enables community
+   maintenance of Flask extensions. If you are interested in helping maintain
+   this project, please reach out on the `Pallets Discord server
+   <https://discord.gg/pallets>`_.
 
 
 Usage
@@ -152,7 +163,7 @@ To ignore second repetition, simply set second to ``0`` or any other const::
 
 Support for start_time shifts
 ==============================
-See https://github.com/kiorky/croniter/pull/76,
+See https://github.com/pallets-eco/croniter/pull/76,
 You can set start_time=, then expand_from_start_time=True for your generations to be computed from start_time instead of calendar days::
 
     >>> from pprint import pprint
@@ -337,7 +348,7 @@ Develop this package
 
 ::
 
-    git clone https://github.com/kiorky/croniter.git
+    git clone https://github.com/pallets-eco/croniter.git
     cd croniter
     virtualenv --no-site-packages venv3
     venv3/bin/pip install --upgrade -r requirements/test.txt -r requirements/lint.txt -r requirements/format.txt -r requirements/tox.txt
@@ -377,6 +388,7 @@ Thanks to all who have contributed to this project!
 If you have contributed and your name is not listed below please let us know.
 
     - Aarni Koskela (akx)
+    - ashb
     - chris-baynes
     - djmitche
     - evanpurkhiser
