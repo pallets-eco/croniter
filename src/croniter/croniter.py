@@ -1,8 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import, division, print_function
-
 import binascii
 import calendar
 import copy
@@ -26,7 +22,6 @@ from dateutil.tz import tzutc
 def is_32bit():
     """
     Detect if Python is running in 32-bit mode.
-    Compatible with Python 2.6 and later versions.
     Returns True if running on 32-bit Python, False for 64-bit.
     """
     # Method 1: Check pointer size
@@ -38,13 +33,8 @@ def is_32bit():
     except RuntimeError:
         architecture = None
 
-    # Method 3: Check maxsize (sys.maxint in Python 2)
-    try:
-        # Python 2
-        is_small_maxsize = sys.maxint <= 2 ** 32
-    except AttributeError:
-        # Python 3
-        is_small_maxsize = sys.maxsize <= 2 ** 32
+    # Method 3: Check maxsize
+    is_small_maxsize = sys.maxsize <= 2 ** 32
 
     # Evaluate all available methods
     is_32 = False
@@ -136,15 +126,11 @@ EXPRESSIONS = {}
 MARKER = object()
 
 
-def timedelta_to_seconds(td):
-    return (td.microseconds + (td.seconds + td.days * 24 * 3600) * 10 ** 6) / 10 ** 6
-
-
 def datetime_to_timestamp(d):
     if d.tzinfo is not None:
         d = d.replace(tzinfo=None) - d.utcoffset()
 
-    return timedelta_to_seconds(d - datetime.datetime(1970, 1, 1))
+    return (d - datetime.datetime(1970, 1, 1)).total_seconds()
 
 
 class CroniterError(ValueError):
@@ -352,18 +338,6 @@ class croniter(object):
 
     _timestamp_to_datetime = timestamp_to_datetime  # retrocompat
 
-    @staticmethod
-    def timedelta_to_seconds(td):
-        """
-        Converts a 'datetime.timedelta' object `td` into seconds contained in
-        the duration.
-        Note: We cannot use `timedelta.total_seconds()` because this is not
-        supported by Python 2.6.
-        """
-        return timedelta_to_seconds(td)
-
-    _timedelta_to_seconds = timedelta_to_seconds  # retrocompat
-
     def _get_next(
         self,
         ret_type=None,
@@ -423,8 +397,8 @@ class croniter(object):
         dtresult_utcoffset = dtstarttime_utcoffset
         if dtresult and self.tzinfo:
             dtresult_utcoffset = dtresult.utcoffset()
-            lag_hours = self._timedelta_to_seconds(dtresult - dtstarttime) / (60 * 60)
-            lag = self._timedelta_to_seconds(dtresult_utcoffset - dtstarttime_utcoffset)
+            lag_hours = (dtresult - dtstarttime).total_seconds() / (60 * 60)
+            lag = (dtresult_utcoffset - dtstarttime_utcoffset).total_seconds()
         hours_before_midnight = 24 - dtstarttime.hour
         if dtresult_utcoffset != dtstarttime_utcoffset:
             if (lag > 0 and abs(lag_hours) >= hours_before_midnight) or (
