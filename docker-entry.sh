@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 [[ -n "${SDEBUG}" ]] && set -x
 cd /app
-python setup.py develop >/dev/null 2>&1
+python -m pip install -e . >/dev/null 2>&1
 if [[ -z $@ ]];then
     exec bash
 else

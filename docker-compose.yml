@@ -5,6 +5,6 @@ services:
     - ./docker-entry.sh:/app/docker-entry.sh
     - ./.dockertox:/app/.tox
     - ./setup.cfg:/app/setup.cfg
-    - ./setup.py:/app/setup.py
+    - ./pyproject.toml:/app/pyproject.toml
     - ./src:/app/src
     - ./tox.ini:/app/tox.ini

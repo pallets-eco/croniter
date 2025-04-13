@@ -1,3 +1,0 @@
-python_dateutil
-pytz>2021.1
--e .
