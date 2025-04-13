@@ -28,7 +28,7 @@ EOF
 WORKDIR app
 ADD *.rst LICENSE MANIFEST.in *.txt *.cfg *.py *.ini ./
 ADD ./src/ src/
-ADD requirements/test.txt requirements/base.txt requirements/
+ADD requirements/test.txt requirements/
 RUN pip install --no-cache-dir --break-system-packages -r req*/test.txt
 ADD requirements/lint.txt requirements/
 RUN pip install --no-cache-dir --break-system-packages -r req*/lint.txt
