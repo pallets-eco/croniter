@@ -58,12 +58,6 @@ except OverflowError:
     OVERFLOW32B_MODE = True
 
 try:
-    from collections import OrderedDict
-except ImportError:
-    OrderedDict = dict  # py26 degraded mode, expanders order will not be immutable
-
-
-try:
     # py3 recent
     UTC_DT = datetime.timezone.utc
 except AttributeError:
@@ -1329,7 +1323,7 @@ class HashExpander:
             )
 
 
-EXPANDERS = OrderedDict(
+EXPANDERS = dict(
     [
         ("hash", HashExpander),
     ]
