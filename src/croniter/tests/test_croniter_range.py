@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import unittest
 from datetime import datetime, timedelta
 
-import pytz
+from zoneinfo import ZoneInfo
 
 from croniter import CroniterBadCronError, CroniterBadDateError, CroniterBadTypeRangeError, croniter, croniter_range
 from croniter.tests import base
@@ -82,9 +81,9 @@ class CroniterRangeTest(base.TestCase):
 
     def test_timezone_dst(self):
         """Test across DST transition, which technically is a timzone change."""
-        tz = pytz.timezone("US/Eastern")
-        start = tz.localize(datetime(2020, 10, 30))
-        stop = tz.localize(datetime(2020, 11, 10))
+        tz = ZoneInfo("US/Eastern")
+        start = datetime(2020, 10, 30, tzinfo=tz)
+        stop = datetime(2020, 11, 10, tzinfo=tz)
         res = list(croniter_range(start, stop, "0 0 * * *"))
         self.assertNotEqual(res[0].tzinfo, res[-1].tzinfo)
         self.assertEqual(len(res), 12)
@@ -95,7 +94,7 @@ class CroniterRangeTest(base.TestCase):
             tzinfo = kw.pop("tzinfo")
             return tzinfo.localize(datetime(*args))
 
-        tz = pytz.timezone("US/Eastern")
+        tz = ZoneInfo("US/Eastern")
         cron = "0 3 * * *"
         start = datetime_tz(2020, 3, 7, tzinfo=tz)
         end = datetime_tz(2020, 3, 11, tzinfo=tz)

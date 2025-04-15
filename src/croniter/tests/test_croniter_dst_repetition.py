@@ -2,27 +2,15 @@
 """
 All related DST croniter tests are isolated here.
 """
-# -*- coding: utf-8 -*-
-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 import os
 import time
-from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from croniter import (
-    HOUR_FIELD,
-    CroniterBadCronError,
-    CroniterBadDateError,
-    CroniterBadTypeRangeError,
-    CroniterError,
     cron_m,
     croniter,
-    croniter_range,
 )
 from croniter.tests import base
 

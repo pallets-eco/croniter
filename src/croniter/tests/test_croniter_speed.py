@@ -1,20 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function
-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 import os
 import sys
 from datetime import datetime
 from timeit import Timer
 
-import pytz
-
-from croniter import cron_m, croniter
+from croniter import croniter
 from croniter.tests import base
 
 
