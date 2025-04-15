@@ -1,16 +1,12 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
+import unittest
 
 from datetime import datetime, timedelta
 from functools import partial
 from time import sleep
+from zoneinfo import ZoneInfo
 
 import dateutil.tz
-import pytz
 
 from croniter import (
     CroniterBadCronError,
@@ -726,13 +722,13 @@ class CroniterTest(base.TestCase):
         self.assertEqual(base.minute, res.minute)
 
     def testTimezone(self):
-        base = datetime(2013, 3, 4, 12, 15)
+        tokyo = ZoneInfo("Asia/Tokyo")
+        base = datetime(2013, 3, 4, 12, 15, tzinfo=tokyo)
         itr = croniter("* * * * *", base)
         n1 = itr.get_next(datetime)
         self.assertEqual(n1.tzinfo, None)
 
-        tokyo = pytz.timezone("Asia/Tokyo")
-        itr2 = croniter("* * * * *", tokyo.localize(base))
+        itr2 = croniter("* * * * *", base)
         n2 = itr2.get_next(datetime)
         self.assertEqual(n2.tzinfo.zone, "Asia/Tokyo")
 
@@ -757,43 +753,43 @@ class CroniterTest(base.TestCase):
             self.assertEqual(expected_offset, d.utcoffset().total_seconds())
 
     def testTimezoneWinterTime(self):
-        tz = pytz.timezone("Europe/Athens")
+        tz = ZoneInfo("Europe/Athens")
 
         expected_schedule = [
-            (datetime(2013, 10, 27, 2, 30, 0), 10800),
-            (datetime(2013, 10, 27, 3, 0, 0), 10800),
-            (datetime(2013, 10, 27, 3, 30, 0), 10800),
-            (datetime(2013, 10, 27, 3, 0, 0), 7200),
-            (datetime(2013, 10, 27, 3, 30, 0), 7200),
-            (datetime(2013, 10, 27, 4, 0, 0), 7200),
-            (datetime(2013, 10, 27, 4, 30, 0), 7200),
+            (datetime(2013, 10, 27, 2, 30, 0, tzinfo=tz), 10800),
+            (datetime(2013, 10, 27, 3, 0, 0, tzinfo=tz), 10800),
+            (datetime(2013, 10, 27, 3, 30, 0, tzinfo=tz), 10800),
+            (datetime(2013, 10, 27, 3, 0, 0, tzinfo=tz), 7200),
+            (datetime(2013, 10, 27, 3, 30, 0, tzinfo=tz), 7200),
+            (datetime(2013, 10, 27, 4, 0, 0, tzinfo=tz), 7200),
+            (datetime(2013, 10, 27, 4, 30, 0, tzinfo=tz), 7200),
         ]
 
         start = datetime(2013, 10, 27, 2, 0, 0)
-        ct = croniter("*/30 * * * *", tz.localize(start))
+        ct = croniter("*/30 * * * *", start)
         self.assertScheduleTimezone(lambda: ct.get_next(datetime), expected_schedule)
 
         start = datetime(2013, 10, 27, 5, 0, 0)
-        ct = croniter("*/30 * * * *", tz.localize(start))
+        ct = croniter("*/30 * * * *", start)
         self.assertScheduleTimezone(lambda: ct.get_prev(datetime), reversed(expected_schedule))
 
     def testTimezoneSummerTime(self):
-        tz = pytz.timezone("Europe/Athens")
+        tz = ZoneInfo("Europe/Athens")
 
         expected_schedule = [
-            (datetime(2013, 3, 31, 1, 30, 0), 7200),
-            (datetime(2013, 3, 31, 2, 0, 0), 7200),
-            (datetime(2013, 3, 31, 2, 30, 0), 7200),
-            (datetime(2013, 3, 31, 4, 0, 0), 10800),
-            (datetime(2013, 3, 31, 4, 30, 0), 10800),
+            (datetime(2013, 3, 31, 1, 30, 0, tzinfo=tz), 7200),
+            (datetime(2013, 3, 31, 2, 0, 0, tzinfo=tz), 7200),
+            (datetime(2013, 3, 31, 2, 30, 0, tzinfo=tz), 7200),
+            (datetime(2013, 3, 31, 4, 0, 0, tzinfo=tz), 10800),
+            (datetime(2013, 3, 31, 4, 30, 0, tzinfo=tz), 10800),
         ]
 
         start = datetime(2013, 3, 31, 1, 0, 0)
-        ct = croniter("*/30 * * * *", tz.localize(start))
+        ct = croniter("*/30 * * * *", start)
         self.assertScheduleTimezone(lambda: ct.get_next(datetime), expected_schedule)
 
         start = datetime(2013, 3, 31, 5, 0, 0)
-        ct = croniter("*/30 * * * *", tz.localize(start))
+        ct = croniter("*/30 * * * *", start)
         self.assertScheduleTimezone(lambda: ct.get_prev(datetime), reversed(expected_schedule))
 
     def test_std_dst(self):
@@ -803,41 +799,41 @@ class CroniterTest(base.TestCase):
         This fixes https://github.com/taichino/croniter/issues/82
 
         """
-        tz = pytz.timezone("Europe/Warsaw")
+        tz = ZoneInfo("Europe/Warsaw")
         # -> 2017-03-26 01:59+1:00 -> 03:00+2:00
-        local_date = tz.localize(datetime(2017, 3, 26))
+        local_date = datetime(2017, 3, 26, tzinfo=tz)
         val = croniter("0 0 * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 3, 27)))
+        self.assertEqual(val, datetime(2017, 3, 27, tzinfo=tz))
         #
-        local_date = tz.localize(datetime(2017, 3, 26, 1))
+        local_date = datetime(2017, 3, 26, 1, tzinfo=tz)
         cr = croniter("0 * * * *", local_date)
         val = cr.get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 3, 26, 3)))
+        self.assertEqual(val, datetime(2017, 3, 26, 3, tzinfo=tz))
         val = cr.get_current(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 3, 26, 3)))
+        self.assertEqual(val, datetime(2017, 3, 26, 3, tzinfo=tz))
 
         # -> 2017-10-29 02:59+2:00 -> 02:00+1:00
-        local_date = tz.localize(datetime(2017, 10, 29))
+        local_date = datetime(2017, 10, 29, tzinfo=tz)
         val = croniter("0 0 * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 30)))
-        local_date = tz.localize(datetime(2017, 10, 29, 1, 59))
+        self.assertEqual(val, datetime(2017, 10, 30, tzinfo=tz))
+        local_date = datetime(2017, 10, 29, 1, 59, tzinfo=tz)
         val = croniter("0 * * * *", local_date).get_next(datetime)
         self.assertEqual(
             val.replace(tzinfo=None),
-            tz.localize(datetime(2017, 10, 29, 2)).replace(tzinfo=None),
+            datetime(2017, 10, 29, 2, tzinfo=tz).replace(tzinfo=None),
         )
-        local_date = tz.localize(datetime(2017, 10, 29, 2))
+        local_date = datetime(2017, 10, 29, 2, tzinfo=tz)
         val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 3)))
-        local_date = tz.localize(datetime(2017, 10, 29, 3))
+        self.assertEqual(val, datetime(2017, 10, 29, 3, tzinfo=tz))
+        local_date = datetime(2017, 10, 29, 3, tzinfo=tz)
         val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 4)))
-        local_date = tz.localize(datetime(2017, 10, 29, 4))
+        self.assertEqual(val, datetime(2017, 10, 29, 4, tzinfo=tz))
+        local_date = datetime(2017, 10, 29, 4, tzinfo=tz)
         val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 5)))
-        local_date = tz.localize(datetime(2017, 10, 29, 5))
+        self.assertEqual(val, datetime(2017, 10, 29, 5, tzinfo=tz))
+        local_date = datetime(2017, 10, 29, 5, tzinfo=tz)
         val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 6)))
+        self.assertEqual(val, datetime(2017, 10, 29, 6, tzinfo=tz))
 
     def test_std_dst2(self):
         """
@@ -848,24 +844,24 @@ class CroniterTest(base.TestCase):
         São Paulo, Brazil: 18/02/2018 00:00 -> 17/02/2018 23:00
 
         """
-        tz = pytz.timezone("America/Sao_Paulo")
+        tz = ZoneInfo("America/Sao_Paulo")
         local_dates = [
             # 17-22: 00 -> 18-00:00
-            (tz.localize(datetime(2018, 2, 17, 21, 0, 0)), "2018-02-18 00:00:00-03:00"),
+            (datetime(2018, 2, 17, 21, 0, 0, tzinfo=tz), "2018-02-18 00:00:00-03:00"),
             # 17-23: 00 -> 18-00:00
-            (tz.localize(datetime(2018, 2, 17, 22, 0, 0)), "2018-02-18 00:00:00-03:00"),
+            (datetime(2018, 2, 17, 22, 0, 0, tzinfo=tz), "2018-02-18 00:00:00-03:00"),
             # 17-23: 00 -> 18-00:00
-            (tz.localize(datetime(2018, 2, 17, 23, 0, 0)), "2018-02-18 00:00:00-03:00"),
+            (datetime(2018, 2, 17, 23, 0, 0, tzinfo=tz), "2018-02-18 00:00:00-03:00"),
             # 18-00: 00 -> 19-00:00
-            (tz.localize(datetime(2018, 2, 18, 0, 0, 0)), "2018-02-19 00:00:00-03:00"),
+            (datetime(2018, 2, 18, 0, 0, 0, tzinfo=tz), "2018-02-19 00:00:00-03:00"),
             # 17-22: 00 -> 18-00:00
-            (tz.localize(datetime(2018, 2, 17, 21, 5, 0)), "2018-02-18 00:00:00-03:00"),
+            (datetime(2018, 2, 17, 21, 5, 0, tzinfo=tz), "2018-02-18 00:00:00-03:00"),
             # 17-23: 00 -> 18-00:00
-            (tz.localize(datetime(2018, 2, 17, 22, 5, 0)), "2018-02-18 00:00:00-03:00"),
+            (datetime(2018, 2, 17, 22, 5, 0, tzinfo=tz), "2018-02-18 00:00:00-03:00"),
             # 17-23: 00 -> 18-00:00
-            (tz.localize(datetime(2018, 2, 17, 23, 5, 0)), "2018-02-18 00:00:00-03:00"),
+            (datetime(2018, 2, 17, 23, 5, 0, tzinfo=tz), "2018-02-18 00:00:00-03:00"),
             # 18-00: 00 -> 19-00:00
-            (tz.localize(datetime(2018, 2, 18, 0, 5, 0)), "2018-02-19 00:00:00-03:00"),
+            (datetime(2018, 2, 18, 0, 5, 0, tzinfo=tz), "2018-02-19 00:00:00-03:00"),
         ]
         ret1 = [croniter("0 0 * * *", d[0]).get_next(datetime) for d in local_dates]
         sret1 = ["{0}".format(d) for d in ret1]
@@ -882,15 +878,15 @@ class CroniterTest(base.TestCase):
 
         """
 
-        tz = pytz.timezone("Australia/Adelaide")
+        tz = ZoneInfo("Australia/Adelaide")
 
-        schedule = croniter("0 0 24 * *", tz.localize(datetime(2020, 4, 15)))
+        schedule = croniter("0 0 24 * *", datetime(2020, 4, 15, tzinfo=tz))
         val1 = schedule.get_prev(datetime)
-        dt1 = tz.localize(datetime(2020, 3, 24))
+        dt1 = datetime(2020, 3, 24, tzinfo=tz)
         self.assertEqual(val1, dt1)
 
         val2 = schedule.get_next(datetime)
-        dt2 = tz.localize(datetime(2020, 4, 24))
+        dt2 = datetime(2020, 4, 24, tzinfo=tz)
         self.assertEqual(val2, dt2)
 
     def test_error_alpha_cron(self):
@@ -1178,7 +1174,7 @@ class CroniterTest(base.TestCase):
         )
 
     def test_dst_issue90_st31ny(self):
-        tz = pytz.timezone("Europe/Paris")
+        tz = ZoneInfo("Europe/Paris")
         now = datetime(2020, 3, 29, 1, 59, 55, tzinfo=tz)
         it = croniter("1 2 * * *", now)
         #
@@ -1243,7 +1239,7 @@ class CroniterTest(base.TestCase):
         )
 
     def test_dst_iter(self):
-        tz = pytz.timezone("Asia/Hebron")
+        tz = ZoneInfo("Asia/Hebron")
         now = datetime(2022, 3, 26, 0, 0, 0, tzinfo=tz)
         it = croniter("0 0 * * *", now)
         ret = [
@@ -1770,7 +1766,7 @@ class CroniterTest(base.TestCase):
         self.assertRaises(CroniterBadCronError, croniter, "0 0 0 1 0")
 
     def test_issue_k11(self):
-        now = pytz.timezone("America/New_York").localize(datetime(2019, 1, 14, 11, 0, 59))
+        now = datetime(2019, 1, 14, 11, 0, 59, tzinfo=ZoneInfo("America/New_York"))
         nextnow = croniter("* * * * * ").next(datetime, start_time=now)
         nextnow2 = croniter("* * * * * ", now).next(datetime)
         for nt in nextnow, nextnow2:
@@ -1778,7 +1774,7 @@ class CroniterTest(base.TestCase):
             self.assertEqual(int(croniter._datetime_to_timestamp(nt)), 1547481660)
 
     def test_issue_k12(self):
-        tz = pytz.timezone("Europe/Athens")
+        tz = ZoneInfo("Europe/Athens")
         base = datetime(2010, 1, 23, 12, 18, tzinfo=tz)
         itr = croniter("* * * * *")
         itr.set_current(start_time=base)

@@ -12,9 +12,6 @@ import sys
 import traceback as _traceback
 from time import time
 
-# as pytz is optional in thirdparty libs but we need it for good support under
-# python2, just test that it's well installed
-import pytz  # noqa
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import tzutc
 
@@ -57,18 +54,7 @@ try:
 except OverflowError:
     OVERFLOW32B_MODE = True
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    OrderedDict = dict  # py26 degraded mode, expanders order will not be immutable
-
-
-try:
-    # py3 recent
-    UTC_DT = datetime.timezone.utc
-except AttributeError:
-    UTC_DT = pytz.utc
-EPOCH = datetime.datetime.fromtimestamp(0, UTC_DT)
+EPOCH = datetime.datetime.fromtimestamp(0, datetime.timezone.utc)
 
 # fmt: off
 M_ALPHAS = {
@@ -161,7 +147,7 @@ class CroniterNotAlphaError(CroniterBadCronError):
     """Cron syntax contains an invalid day or month abbreviation"""
 
 
-class croniter(object):
+class croniter:
     MONTHS_IN_YEAR = 12
 
     # This helps with expanding `*` fields into `lower-upper` ranges. Each item
@@ -332,7 +318,7 @@ class croniter(object):
         else:
             result = datetime.datetime.fromtimestamp(timestamp, tz=tzutc()).replace(tzinfo=None)
         if tzinfo:
-            result = result.replace(tzinfo=UTC_DT).astimezone(tzinfo)
+            result = result.replace(tzinfo=datetime.timezone.utc).astimezone(tzinfo)
         TIMESTAMP_TO_DT_CACHE[(result, repr(result.tzinfo))] = result
         return result
 
@@ -1100,7 +1086,7 @@ class croniter(object):
 
     @classmethod
     def _get_low_from_current_date_number(cls, field_index, step, from_timestamp):
-        dt = datetime.datetime.fromtimestamp(from_timestamp, tz=UTC_DT)
+        dt = datetime.datetime.fromtimestamp(from_timestamp, tz=datetime.timezone.utc)
         if field_index == MINUTE_FIELD:
             return dt.minute % step
         if field_index == HOUR_FIELD:
@@ -1329,7 +1315,7 @@ class HashExpander:
             )
 
 
-EXPANDERS = OrderedDict(
+EXPANDERS = dict(
     [
         ("hash", HashExpander),
     ]
