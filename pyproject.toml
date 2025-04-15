@@ -30,7 +30,6 @@ classifiers = [
 ]
 dependencies = [
   "python_dateutil",
-  "pytz>2021.1",
 ]
 dynamic = ["readme"]
 
