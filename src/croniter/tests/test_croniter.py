@@ -887,6 +887,22 @@ class CroniterTest(base.TestCase):
         dt2 = tz.localize(datetime(2020, 4, 24))
         self.assertEqual(val2, dt2)
 
+    def test_dst_hourly(self) -> None:
+        """
+        DST test for hourly schedule
+
+        Test fixing https://github.com/pallets-eco/croniter/issues/149
+
+        Europe/London jumps 1 hour forward on 2025-03-30 01:00
+        """
+        london = dateutil.tz.gettz("Europe/London")
+        start = datetime(2025, 3, 30, tzinfo=london)
+        ct = croniter("7 * * * *", start)
+        schedule = [ct.get_next(datetime).isoformat() for _ in range(3)]
+        self.assertEqual(
+            schedule, ["2025-03-30T00:07:00+00:00", "2025-03-30T02:07:00+01:00", "2025-03-30T03:07:00+01:00"]
+        )
+
     def test_dst_daily(self) -> None:
         """
         DST test for daily schedule
