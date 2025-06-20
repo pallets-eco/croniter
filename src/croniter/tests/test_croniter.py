@@ -887,6 +887,20 @@ class CroniterTest(base.TestCase):
         dt2 = tz.localize(datetime(2020, 4, 24))
         self.assertEqual(val2, dt2)
 
+    def test_dst_daily(self) -> None:
+        """
+        DST test for daily schedule
+
+        Europe/London jumps 1 hour forward on 2025-03-30 01:00
+        """
+        london = dateutil.tz.gettz("Europe/London")
+        start = datetime(2025, 3, 30, tzinfo=london)
+        ct = croniter("7 0 * * *", start)
+        schedule = [ct.get_next(datetime).isoformat() for _ in range(3)]
+        self.assertEqual(
+            schedule, ["2025-03-30T00:07:00+00:00", "2025-03-31T00:07:00+01:00", "2025-04-01T00:07:00+01:00"]
+        )
+
     def test_error_alpha_cron(self):
         self.assertRaises(CroniterNotAlphaError, croniter.expand, "* * * janu-jun *")
 
