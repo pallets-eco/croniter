@@ -10,11 +10,9 @@ import re
 import struct
 import sys
 import traceback as _traceback
+from collections import OrderedDict
 from time import time
 
-# as pytz is optional in thirdparty libs but we need it for good support under
-# python2, just test that it's well installed
-import pytz  # noqa
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import tzutc
 
@@ -57,17 +55,8 @@ try:
 except OverflowError:
     OVERFLOW32B_MODE = True
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    OrderedDict = dict  # py26 degraded mode, expanders order will not be immutable
 
-
-try:
-    # py3 recent
-    UTC_DT = datetime.timezone.utc
-except AttributeError:
-    UTC_DT = pytz.utc
+UTC_DT = datetime.timezone.utc
 EPOCH = datetime.datetime.fromtimestamp(0, UTC_DT)
 
 # fmt: off
@@ -1082,10 +1071,8 @@ class croniter:
         except (ValueError,) as exc:
             if isinstance(exc, CroniterError):
                 raise
-            if int(sys.version[0]) >= 3:
-                trace = _traceback.format_exc()
-                raise CroniterBadCronError(trace)
-            raise CroniterBadCronError(str(exc))
+            trace = _traceback.format_exc()
+            raise CroniterBadCronError(trace)
 
     @classmethod
     def _get_low_from_current_date_number(cls, field_index, step, from_timestamp):
