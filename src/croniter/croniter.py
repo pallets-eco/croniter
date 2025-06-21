@@ -1274,7 +1274,7 @@ class HashExpander:
                 range_end=int(m["divisor"]) - 1 + int(m["range_begin"]),
             )
             return f"{x}-{int(m['range_end'])}/{int(m['divisor'])}"
-        elif m["range_begin"] and m["range_end"]:
+        if m["range_begin"] and m["range_end"]:
             # Example: H(0-29) -> 12
             return str(
                 self.do(
@@ -1285,7 +1285,7 @@ class HashExpander:
                     range_begin=int(m["range_begin"]),
                 )
             )
-        elif m["divisor"]:
+        if m["divisor"]:
             # Example: H/15 -> 7-59/15 (i.e. 7,22,37,52)
             if int(m["divisor"]) == 0:
                 raise CroniterBadCronError(f"Bad expression: {expr}")
@@ -1298,15 +1298,15 @@ class HashExpander:
                 range_end=int(m["divisor"]) - 1 + self.cron.RANGES[idx][0],
             )
             return f"{x}-{self.cron.RANGES[idx][1]}/{int(m['divisor'])}"
-        else:
-            # Example: H -> 32
-            return str(
-                self.do(
-                    idx,
-                    hash_type=m["hash_type"],
-                    hash_id=hash_id,
-                )
+
+        # Example: H -> 32
+        return str(
+            self.do(
+                idx,
+                hash_type=m["hash_type"],
+                hash_id=hash_id,
             )
+        )
 
 
 EXPANDERS = OrderedDict(
