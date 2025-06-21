@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
 
+import unittest
 from datetime import datetime, timedelta
 from functools import partial
 from time import sleep

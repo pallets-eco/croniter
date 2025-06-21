@@ -4,13 +4,9 @@ All related DST croniter tests are isolated here.
 """
 # -*- coding: utf-8 -*-
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
-
 import os
 import time
+import unittest
 from collections import OrderedDict
 from datetime import datetime, timedelta
 

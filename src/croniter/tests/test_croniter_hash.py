@@ -1,11 +1,6 @@
 import random
+import unittest
 import uuid
-
-try:
-    import unittest2 as unittest
-except ImportError:
-    import unittest
-
 from datetime import datetime, timedelta
 
 from croniter import CroniterBadCronError, CroniterNotAlphaError, croniter
