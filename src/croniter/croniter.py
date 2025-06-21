@@ -100,8 +100,7 @@ WEEKDAYS = "|".join(DOW_ALPHAS.keys())
 MONTHS = "|".join(M_ALPHAS.keys())
 star_or_int_re = re.compile(r"^(\d+|\*)$")
 special_dow_re = re.compile(
-    (r"^(?P<pre>((?P<he>(({WEEKDAYS})(-({WEEKDAYS}))?)").format(WEEKDAYS=WEEKDAYS)
-    + (r"|(({MONTHS})(-({MONTHS}))?)|\w+)#)|l)(?P<last>\d+)$").format(MONTHS=MONTHS)
+    rf"^(?P<pre>((?P<he>(({WEEKDAYS})(-({WEEKDAYS}))?)|(({MONTHS})(-({MONTHS}))?)|\w+)#)|l)(?P<last>\d+)$"
 )
 re_star = re.compile("[*]")
 hash_expression_re = re.compile(
@@ -266,7 +265,7 @@ class croniter:
         try:
             return cls.ALPHACONV[index][key]
         except KeyError:
-            raise CroniterNotAlphaError("[{}] is not acceptable".format(" ".join(expressions)))
+            raise CroniterNotAlphaError(f"[{' '.join(expressions)}] is not acceptable")
 
     def get_next(self, ret_type=None, start_time=None, update_current=True):
         if start_time and self._expand_from_start_time:
@@ -849,9 +848,8 @@ class croniter:
                     )
                 if field_index not in [DAY_FIELD, DOW_FIELD]:
                     raise CroniterBadCronError(
-                        "[{}] is not acceptable. Question mark can only used in day_of_month or day_of_week".format(
-                            expr_format
-                        )
+                        f"[{expr_format}] is not acceptable. "
+                        f"Question mark can only used in day_of_month or day_of_week"
                     )
                 # currently just trade `?` as `*`
                 expr = "*"
@@ -924,9 +922,7 @@ class croniter:
                     for band in low, high:
                         if not only_int_re.search(str(band)):
                             raise CroniterBadCronError(
-                                "[{0}] bands '{2}-{3}' in field {1} are not acceptable".format(
-                                    expr_format, field_index, low, high
-                                )
+                                f"[{expr_format}] bands '{low}-{high}' in field {field_index} are not acceptable"
                             )
 
                     low, high = (cls.value_alias(int(_val), field_index, expressions) for _val in (low, high))
@@ -978,9 +974,7 @@ class croniter:
                     e_list += [a for a in rng if a not in e_list]
                 else:
                     if t.startswith("-"):
-                        raise CroniterBadCronError(
-                            "[{}] is not acceptable," "negative numbers not allowed".format(expr_format)
-                        )
+                        raise CroniterBadCronError(f"[{expr_format}] is not acceptable, negative numbers not allowed")
                     if not star_or_int_re.search(t):
                         t = cls._alphaconv(field_index, t, expressions)
 
@@ -1024,8 +1018,8 @@ class croniter:
             # Skip: if it's all weeks instead of wildcard
             if dow_expanded_set and len(set(expanded[DOW_FIELD])) != cls.LEN_MEANS_ALL[DOW_FIELD]:
                 raise CroniterUnsupportedSyntaxError(
-                    "day-of-week field does not support mixing literal values and nth day of week syntax.  "
-                    "Cron: '{}'    dow={} vs nth={}".format(expr_format, dow_expanded_set, nth_weekday_of_month)
+                    f"day-of-week field does not support mixing literal values and nth day of week syntax.  "
+                    f"Cron: '{expr_format}'    dow={dow_expanded_set} vs nth={nth_weekday_of_month}"
                 )
 
         EXPRESSIONS[(expr_format, hash_id, second_at_beginning)] = expressions
@@ -1272,17 +1266,14 @@ class HashExpander:
             if int(m["divisor"]) == 0:
                 raise CroniterBadCronError(f"Bad expression: {expr}")
 
-            return "{}-{}/{}".format(
-                self.do(
-                    idx,
-                    hash_type=m["hash_type"],
-                    hash_id=hash_id,
-                    range_begin=int(m["range_begin"]),
-                    range_end=int(m["divisor"]) - 1 + int(m["range_begin"]),
-                ),
-                int(m["range_end"]),
-                int(m["divisor"]),
+            x = self.do(
+                idx,
+                hash_type=m["hash_type"],
+                hash_id=hash_id,
+                range_begin=int(m["range_begin"]),
+                range_end=int(m["divisor"]) - 1 + int(m["range_begin"]),
             )
+            return f"{x}-{int(m['range_end'])}/{int(m['divisor'])}"
         elif m["range_begin"] and m["range_end"]:
             # Example: H(0-29) -> 12
             return str(
@@ -1299,17 +1290,14 @@ class HashExpander:
             if int(m["divisor"]) == 0:
                 raise CroniterBadCronError(f"Bad expression: {expr}")
 
-            return "{}-{}/{}".format(
-                self.do(
-                    idx,
-                    hash_type=m["hash_type"],
-                    hash_id=hash_id,
-                    range_begin=self.cron.RANGES[idx][0],
-                    range_end=int(m["divisor"]) - 1 + self.cron.RANGES[idx][0],
-                ),
-                self.cron.RANGES[idx][1],
-                int(m["divisor"]),
+            x = self.do(
+                idx,
+                hash_type=m["hash_type"],
+                hash_id=hash_id,
+                range_begin=self.cron.RANGES[idx][0],
+                range_end=int(m["divisor"]) - 1 + self.cron.RANGES[idx][0],
             )
+            return f"{x}-{self.cron.RANGES[idx][1]}/{int(m['divisor'])}"
         else:
             # Example: H -> 32
             return str(
