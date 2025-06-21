@@ -8,7 +8,7 @@ from timeit import Timer
 
 import pytz
 
-from croniter import cron_m, croniter
+from croniter import croniter
 from croniter.tests import base
 
 
