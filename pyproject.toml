@@ -30,9 +30,13 @@ classifiers = [
 ]
 dependencies = [
   "python_dateutil",
-  "pytz>2021.1",
 ]
 dynamic = ["readme"]
+
+[project.optional-dependencies]
+test = [
+  "pytz>2021.1",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/pallets-eco/croniter"

@@ -100,8 +100,6 @@ class CroniterSpeedTest(base.TestCase):
             offsets.add(d.utcoffset())
 
     def test_not_long_time(self):
-        if int(sys.version[0]) < 3:
-            return
         iterations = int(os.environ.get("CRONITER_TEST_SPEED_ITERATIONS", "40"))
         globs = globals()
         globs.update(locals())
