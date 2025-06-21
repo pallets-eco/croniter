@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytz
 
