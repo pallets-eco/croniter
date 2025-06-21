@@ -34,7 +34,7 @@ def is_32bit():
         architecture = None
 
     # Method 3: Check maxsize
-    is_small_maxsize = sys.maxsize <= 2 ** 32
+    is_small_maxsize = sys.maxsize <= 2**32
 
     # Evaluate all available methods
     is_32 = False

@@ -7,4 +7,4 @@ class TestCase(unittest.TestCase):
     If necessary, we can put common utility or setup code in here.
     """
 
-    maxDiff = 10 ** 10
+    maxDiff = 10**10
