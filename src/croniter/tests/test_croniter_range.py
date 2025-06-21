@@ -82,7 +82,7 @@ class CroniterRangeTest(base.TestCase):
 
     def test_timezone_dst(self):
         """Test across DST transition, which technically is a timzone change."""
-        tz = pytz.timezone("US/Eastern")
+        tz = pytz.timezone("America/New_York")
         start = tz.localize(datetime(2020, 10, 30))
         stop = tz.localize(datetime(2020, 11, 10))
         res = list(croniter_range(start, stop, "0 0 * * *"))
@@ -95,7 +95,7 @@ class CroniterRangeTest(base.TestCase):
             tzinfo = kw.pop("tzinfo")
             return tzinfo.localize(datetime(*args))
 
-        tz = pytz.timezone("US/Eastern")
+        tz = pytz.timezone("America/New_York")
         cron = "0 3 * * *"
         start = datetime_tz(2020, 3, 7, tzinfo=tz)
         end = datetime_tz(2020, 3, 11, tzinfo=tz)
