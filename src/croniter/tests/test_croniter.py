@@ -746,51 +746,49 @@ class CroniterTest(base.TestCase):
         # Greater does not exists in py26
         self.assertTrue(itr2.cur > itr.cur)
 
-    def assertScheduleTimezone(self, callback, expected_schedule):
-        for expected_date, expected_offset in expected_schedule:
-            d = callback()
-            self.assertEqual(expected_date, d.replace(tzinfo=None))
-            self.assertEqual(expected_offset, d.utcoffset().total_seconds())
-
     def testTimezoneWinterTime(self):
         tz = pytz.timezone("Europe/Athens")
 
         expected_schedule = [
-            (datetime(2013, 10, 27, 2, 30, 0), 10800),
-            (datetime(2013, 10, 27, 3, 0, 0), 10800),
-            (datetime(2013, 10, 27, 3, 30, 0), 10800),
-            (datetime(2013, 10, 27, 3, 0, 0), 7200),
-            (datetime(2013, 10, 27, 3, 30, 0), 7200),
-            (datetime(2013, 10, 27, 4, 0, 0), 7200),
-            (datetime(2013, 10, 27, 4, 30, 0), 7200),
+            "2013-10-27T02:30:00+03:00",
+            "2013-10-27T03:00:00+03:00",
+            "2013-10-27T03:30:00+03:00",
+            "2013-10-27T03:00:00+02:00",
+            "2013-10-27T03:30:00+02:00",
+            "2013-10-27T04:00:00+02:00",
+            "2013-10-27T04:30:00+02:00",
         ]
 
         start = datetime(2013, 10, 27, 2, 0, 0)
         ct = croniter("*/30 * * * *", tz.localize(start))
-        self.assertScheduleTimezone(lambda: ct.get_next(datetime), expected_schedule)
+        schedule = [ct.get_next(datetime).isoformat() for _ in range(7)]
+        self.assertEqual(schedule, expected_schedule)
 
         start = datetime(2013, 10, 27, 5, 0, 0)
         ct = croniter("*/30 * * * *", tz.localize(start))
-        self.assertScheduleTimezone(lambda: ct.get_prev(datetime), reversed(expected_schedule))
+        schedule = [ct.get_prev(datetime).isoformat() for _ in range(7)]
+        self.assertEqual(schedule, list(reversed(expected_schedule)))
 
     def testTimezoneSummerTime(self):
         tz = pytz.timezone("Europe/Athens")
 
         expected_schedule = [
-            (datetime(2013, 3, 31, 1, 30, 0), 7200),
-            (datetime(2013, 3, 31, 2, 0, 0), 7200),
-            (datetime(2013, 3, 31, 2, 30, 0), 7200),
-            (datetime(2013, 3, 31, 4, 0, 0), 10800),
-            (datetime(2013, 3, 31, 4, 30, 0), 10800),
+            "2013-03-31T01:30:00+02:00",
+            "2013-03-31T02:00:00+02:00",
+            "2013-03-31T02:30:00+02:00",
+            "2013-03-31T04:00:00+03:00",
+            "2013-03-31T04:30:00+03:00",
         ]
 
         start = datetime(2013, 3, 31, 1, 0, 0)
         ct = croniter("*/30 * * * *", tz.localize(start))
-        self.assertScheduleTimezone(lambda: ct.get_next(datetime), expected_schedule)
+        schedule = [ct.get_next(datetime).isoformat() for _ in range(5)]
+        self.assertEqual(schedule, expected_schedule)
 
         start = datetime(2013, 3, 31, 5, 0, 0)
         ct = croniter("*/30 * * * *", tz.localize(start))
-        self.assertScheduleTimezone(lambda: ct.get_prev(datetime), reversed(expected_schedule))
+        schedule = [ct.get_prev(datetime).isoformat() for _ in range(5)]
+        self.assertEqual(schedule, list(reversed(expected_schedule)))
 
     def test_std_dst(self):
         """
