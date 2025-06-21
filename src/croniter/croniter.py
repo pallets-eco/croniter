@@ -96,6 +96,7 @@ YEAR_FIELDS =   (MINUTE_FIELD, HOUR_FIELD, DAY_FIELD, MONTH_FIELD, DOW_FIELD, SE
 step_search_re = re.compile(r"^([^-]+)-([^-/]+)(/(\d+))?$")
 only_int_re = re.compile(r"^\d+$")
 
+DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 WEEKDAYS = "|".join(DOW_ALPHAS.keys())
 MONTHS = "|".join(M_ALPHAS.keys())
 star_or_int_re = re.compile(r"^(\d+|\*)$")
@@ -130,6 +131,18 @@ def datetime_to_timestamp(d):
         d = d.replace(tzinfo=None) - d.utcoffset()
 
     return (d - datetime.datetime(1970, 1, 1)).total_seconds()
+
+
+def _is_leap(year: int) -> bool:
+    return year % 400 == 0 or (year % 4 == 0 and year % 100 != 0)
+
+
+def _last_day_of_month(year: int, month: int) -> int:
+    """Calculate the last day of the given month (honor leap years)."""
+    last_day = DAYS[month - 1]
+    if month == 2 and _is_leap(year):
+        last_day += 1
+    return last_day
 
 
 class CroniterError(ValueError):
@@ -174,7 +187,6 @@ class croniter:
         (0, 59),
         (1970, 2099),
     )
-    DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 
     ALPHACONV = (
         {},  # 0: min
@@ -484,7 +496,6 @@ class croniter:
 
         month, year = dst.month, dst.year
         current_year = now.year
-        DAYS = self.DAYS
 
         def proc_year(d):
             if len(expanded) == YEAR_CRON_LEN:
@@ -527,9 +538,7 @@ class croniter:
                 if diff_month is not None and diff_month != 0:
                     if is_prev:
                         d += relativedelta(months=diff_month)
-                        reset_day = DAYS[d.month - 1]
-                        if d.month == 2 and self.is_leap(d.year) is True:
-                            reset_day += 1
+                        reset_day = _last_day_of_month(d.year, d.month)
                         d += relativedelta(day=reset_day, hour=23, minute=59, second=59)
                     else:
                         d += relativedelta(months=diff_month, day=reset_day, hour=0, minute=0, second=0)
@@ -540,9 +549,7 @@ class croniter:
             try:
                 expanded[DAY_FIELD].index("*")
             except ValueError:
-                days = DAYS[month - 1]
-                if month == 2 and self.is_leap(year) is True:
-                    days += 1
+                days = _last_day_of_month(year, month)
                 if "l" in expanded[DAY_FIELD] and days == d.day:
                     return False, d
 
@@ -600,9 +607,7 @@ class croniter:
                 if is_prev:
                     d += relativedelta(days=-d.day, hour=23, minute=59, second=59)
                 else:
-                    days = DAYS[month - 1]
-                    if month == 2 and self.is_leap(year) is True:
-                        days += 1
+                    days = _last_day_of_month(year, month)
                     d += relativedelta(days=(days - d.day + 1), hour=0, minute=0, second=0)
                 return True, d
 
@@ -771,10 +776,6 @@ class croniter:
         if c[0][0] == 0:
             c.pop(0)
         return tuple(i[0] for i in c)
-
-    @staticmethod
-    def is_leap(year):
-        return bool(year % 400 == 0 or (year % 4 == 0 and year % 100 != 0))
 
     @classmethod
     def value_alias(cls, val, field_index, len_expressions=UNIX_CRON_LEN):
