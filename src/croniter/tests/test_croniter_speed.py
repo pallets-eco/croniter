@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, print_function
 
 import os
 import sys
@@ -110,7 +108,7 @@ class CroniterSpeedTest(base.TestCase):
         t = Timer("self.run_long_test(iterations)", globals=globs)
         limit = 80
         ret = t.timeit(limit)
-        self.assertTrue(ret < limit, "Regression in croniter speed detected ({0} {1}).".format(ret, limit))
+        self.assertTrue(ret < limit, f"Regression in croniter speed detected ({ret} {limit}).")
 
 
 if __name__ == "__main__":

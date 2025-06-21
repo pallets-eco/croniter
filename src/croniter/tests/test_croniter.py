@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import unittest
 from datetime import datetime, timedelta
@@ -559,7 +558,7 @@ class CroniterTest(base.TestCase):
         try:
             itr.get_next(datetime)
         except (CroniterBadDateError,) as ex:
-            self.assertEqual("{0}".format(ex), "failed to find next date")
+            self.assertEqual(f"{ex}", "failed to find next date")
 
     def testBug57(self):
         base = datetime(2012, 2, 24, 0, 0, 0)
@@ -865,8 +864,8 @@ class CroniterTest(base.TestCase):
             (tz.localize(datetime(2018, 2, 18, 0, 5, 0)), "2018-02-19 00:00:00-03:00"),
         ]
         ret1 = [croniter("0 0 * * *", d[0]).get_next(datetime) for d in local_dates]
-        sret1 = ["{0}".format(d) for d in ret1]
-        lret1 = ["{0}".format(d[1]) for d in local_dates]
+        sret1 = [str(d) for d in ret1]
+        lret1 = [str(d[1]) for d in local_dates]
         self.assertEqual(sret1, lret1)
 
     def test_std_dst3(self):
@@ -978,7 +977,7 @@ class CroniterTest(base.TestCase):
             dt = datetime.fromtimestamp(c.get_next(), dateutil.tz.tzutc()).replace(tzinfo=None)
             ret.append(dt)
             dt += timedelta(days=1)
-        sret = ["{0}".format(r) for r in ret]
+        sret = [str(r) for r in ret]
         self.assertEqual(
             sret,
             [
@@ -1001,7 +1000,7 @@ class CroniterTest(base.TestCase):
             dt = datetime.fromtimestamp(c.get_next(), dateutil.tz.tzutc()).replace(tzinfo=None)
             ret.append(dt)
             dt += timedelta(days=1)
-        sret = ["{0}".format(r) for r in ret]
+        sret = [str(r) for r in ret]
         self.assertEqual(
             sret,
             [
@@ -1027,7 +1026,7 @@ class CroniterTest(base.TestCase):
             dt = datetime.fromtimestamp(c.get_next(), tz=dateutil.tz.tzutc()).replace(tzinfo=None)
             ret.append(dt)
             dt += timedelta(days=1)
-        sret = ["{0}".format(r) for r in ret]
+        sret = [str(r) for r in ret]
         self.assertEqual(
             sret,
             [
@@ -2365,7 +2364,7 @@ def gen_x_mth_results(expr, loops=None, start=None, is_prev=None):
     start = start or datetime(2024, 1, 1)
     cron = croniter(expr, start_time=start)
     n = cron.get_prev if is_prev else cron.get_next
-    return [["{0} {1}".format(str(a.year)[-2:], a.month) for a in [n(datetime) for i in range(loops or 16)]]]
+    return [[f"{str(a.year)[-2:]} {a.month}" for a in [n(datetime) for i in range(loops or 16)]]]
 
 
 def gen_x_results(expr, loops=None, start=None, is_prev=None):
