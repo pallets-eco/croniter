@@ -481,10 +481,10 @@ class croniter:
             sign = 1
             offset = 1 if (len(expanded) > UNIX_CRON_LEN) else 60
 
-        dst = now = self.timestamp_to_datetime(now + sign * offset)
+        dst = self.timestamp_to_datetime(now + sign * offset)
 
-        month, year = dst.month, dst.year
-        current_year = now.year
+        month = dst.month
+        year = current_year = dst.year
 
         def proc_year(d):
             if len(expanded) == YEAR_CRON_LEN:
