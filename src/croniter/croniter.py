@@ -470,18 +470,18 @@ class croniter:
         return self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
 
     def _calc(self, now, expanded, nth_weekday_of_month, is_prev):
+        now = self.timestamp_to_datetime(now)
         if is_prev:
-            now = math.ceil(now)
             nearest_diff_method = self._get_prev_nearest_diff
-            sign = -1
-            offset = 1 if (len(expanded) > UNIX_CRON_LEN or now % 60 > 0) else 60
+            offset = relativedelta(microseconds=-1)
         else:
-            now = math.floor(now)
             nearest_diff_method = self._get_next_nearest_diff
-            sign = 1
-            offset = 1 if (len(expanded) > UNIX_CRON_LEN) else 60
-
-        dst = self.timestamp_to_datetime(now + sign * offset)
+            offset = relativedelta(seconds=1) if len(expanded) > UNIX_CRON_LEN else relativedelta(minutes=1)
+        dst = now + offset
+        if len(expanded) > UNIX_CRON_LEN:
+            dst = dst.replace(microsecond=0)
+        else:
+            dst = dst.replace(second=0, microsecond=0)
 
         month = dst.month
         year = current_year = dst.year
