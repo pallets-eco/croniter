@@ -351,42 +351,13 @@ class croniter(object):
         if is_prev is None:
             is_prev = self._is_prev
         self._is_prev = is_prev
-        expanded = self.expanded[:]
-        nth_weekday_of_month = self.nth_weekday_of_month.copy()
 
         ret_type = ret_type or self._ret_type
 
         if not issubclass(ret_type, (float, datetime.datetime)):
             raise TypeError("Invalid ret_type, only 'float' or 'datetime' is acceptable.")
 
-        # exception to support day of month and day of week as defined in cron
-        dom_dow_exception_processed = False
-        if (expanded[DAY_FIELD][0] != "*" and expanded[DOW_FIELD][0] != "*") and self._day_or:
-            # If requested, handle a bug in vixie cron/ISC cron where day_of_month and day_of_week form
-            # an intersection (AND) instead of a union (OR) if either field is an asterisk or starts with an asterisk
-            # (https://crontab.guru/cron-bug.html)
-            if self._implement_cron_bug and (
-                re_star.match(self.expressions[DAY_FIELD]) or re_star.match(self.expressions[DOW_FIELD])
-            ):
-                # To produce a schedule identical to the cron bug, we'll bypass the code that
-                # makes a union of DOM and DOW, and instead skip to the code that does an intersect instead
-                pass
-            else:
-                bak = expanded[DOW_FIELD]
-                expanded[DOW_FIELD] = ["*"]
-                t1 = self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
-                expanded[DOW_FIELD] = bak
-                expanded[DAY_FIELD] = ["*"]
-
-                t2 = self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
-                if not is_prev:
-                    result = t1 if t1 < t2 else t2
-                else:
-                    result = t1 if t1 > t2 else t2
-                dom_dow_exception_processed = True
-
-        if not dom_dow_exception_processed:
-            result = self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
+        result = self._calc_next(is_prev)
 
         # DST Handling for cron job spanning across days
         dtstarttime = self._timestamp_to_datetime(self.dst_start_time)
@@ -468,6 +439,35 @@ class croniter(object):
         return self
 
     __next__ = next = _get_next
+
+    def _calc_next(self, is_prev: bool) -> float:
+        expanded = self.expanded[:]
+        nth_weekday_of_month = self.nth_weekday_of_month.copy()
+
+        # exception to support day of month and day of week as defined in cron
+        if (expanded[DAY_FIELD][0] != "*" and expanded[DOW_FIELD][0] != "*") and self._day_or:
+            # If requested, handle a bug in vixie cron/ISC cron where day_of_month and day_of_week form
+            # an intersection (AND) instead of a union (OR) if either field is an asterisk or starts with an asterisk
+            # (https://crontab.guru/cron-bug.html)
+            if self._implement_cron_bug and (
+                re_star.match(self.expressions[DAY_FIELD]) or re_star.match(self.expressions[DOW_FIELD])
+            ):
+                # To produce a schedule identical to the cron bug, we'll bypass the code that
+                # makes a union of DOM and DOW, and instead skip to the code that does an intersect instead
+                pass
+            else:
+                bak = expanded[DOW_FIELD]
+                expanded[DOW_FIELD] = ["*"]
+                t1 = self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
+                expanded[DOW_FIELD] = bak
+                expanded[DAY_FIELD] = ["*"]
+
+                t2 = self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
+                if is_prev:
+                    return t1 if t1 > t2 else t2
+                return t1 if t1 < t2 else t2
+
+        return self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
 
     def _calc(self, now, expanded, nth_weekday_of_month, is_prev):
         if is_prev:
