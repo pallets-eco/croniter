@@ -358,6 +358,7 @@ class croniter:
             raise TypeError("Invalid ret_type, only 'float' or 'datetime' is acceptable.")
 
         result = self._calc_next(is_prev)
+        result = self.datetime_to_timestamp(result)
 
         # DST Handling for cron job spanning across days
         dtstarttime = self._timestamp_to_datetime(self.dst_start_time)
@@ -440,7 +441,8 @@ class croniter:
 
     __next__ = next = _get_next
 
-    def _calc_next(self, is_prev: bool) -> float:
+    def _calc_next(self, is_prev: bool) -> datetime.datetime:
+        current = self.timestamp_to_datetime(self.cur)
         expanded = self.expanded[:]
         nth_weekday_of_month = self.nth_weekday_of_month.copy()
 
@@ -458,19 +460,18 @@ class croniter:
             else:
                 bak = expanded[DOW_FIELD]
                 expanded[DOW_FIELD] = ["*"]
-                t1 = self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
+                t1 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
                 expanded[DOW_FIELD] = bak
                 expanded[DAY_FIELD] = ["*"]
 
-                t2 = self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
+                t2 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
                 if is_prev:
                     return t1 if t1 > t2 else t2
                 return t1 if t1 < t2 else t2
 
-        return self._calc(self.cur, expanded, nth_weekday_of_month, is_prev)
+        return self._calc(current, expanded, nth_weekday_of_month, is_prev)
 
     def _calc(self, now, expanded, nth_weekday_of_month, is_prev):
-        now = self.timestamp_to_datetime(now)
         if is_prev:
             nearest_diff_method = self._get_prev_nearest_diff
             offset = relativedelta(microseconds=-1)
@@ -677,7 +678,7 @@ class croniter:
                 break
             if next:
                 continue
-            return self.datetime_to_timestamp(dst.replace(microsecond=0))
+            return dst.replace(microsecond=0)
 
         if is_prev:
             raise CroniterBadDateError("failed to find prev date")
