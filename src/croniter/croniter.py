@@ -120,7 +120,7 @@ UNIX_CRON_LEN = len(UNIX_FIELDS)
 SECOND_CRON_LEN = len(SECOND_FIELDS)
 YEAR_CRON_LEN = len(YEAR_FIELDS)
 # retrocompat
-VALID_LEN_EXPRESSION = set(a for a in CRON_FIELDS if isinstance(a, int))
+VALID_LEN_EXPRESSION = {a for a in CRON_FIELDS if isinstance(a, int)}
 TIMESTAMP_TO_DT_CACHE = {}
 EXPRESSIONS = {}
 MARKER = object()
@@ -161,7 +161,7 @@ class CroniterNotAlphaError(CroniterBadCronError):
     """Cron syntax contains an invalid day or month abbreviation"""
 
 
-class croniter(object):
+class croniter:
     MONTHS_IN_YEAR = 12
 
     # This helps with expanding `*` fields into `lower-upper` ranges. Each item
@@ -266,7 +266,7 @@ class croniter(object):
         try:
             return cls.ALPHACONV[index][key]
         except KeyError:
-            raise CroniterNotAlphaError("[{0}] is not acceptable".format(" ".join(expressions)))
+            raise CroniterNotAlphaError("[{}] is not acceptable".format(" ".join(expressions)))
 
     def get_next(self, ret_type=None, start_time=None, update_current=True):
         if start_time and self._expand_from_start_time:
@@ -845,11 +845,11 @@ class croniter(object):
             if "?" in expr:
                 if expr != "?":
                     raise CroniterBadCronError(
-                        "[{0}] is not acceptable. Question mark can not used with other characters".format(expr_format)
+                        f"[{expr_format}] is not acceptable. Question mark can not used with other characters"
                     )
                 if field_index not in [DAY_FIELD, DOW_FIELD]:
                     raise CroniterBadCronError(
-                        "[{0}] is not acceptable. Question mark can only used in day_of_month or day_of_week".format(
+                        "[{}] is not acceptable. Question mark can only used in day_of_month or day_of_week".format(
                             expr_format
                         )
                     )
@@ -876,9 +876,7 @@ class croniter(object):
                                 assert 5 >= nth >= 1
                             except (KeyError, ValueError, AssertionError):
                                 raise CroniterBadCronError(
-                                    "[{0}] is not acceptable. Invalid day_of_week value: '{1}'".format(
-                                        expr_format, nth
-                                    )
+                                    f"[{expr_format}] is not acceptable. Invalid day_of_week value: '{nth}'"
                                 )
                         elif last:
                             e = last
@@ -911,15 +909,15 @@ class croniter(object):
                         high = "31"
 
                     if not only_int_re.search(low):
-                        low = "{0}".format(cls._alphaconv(field_index, low, expressions))
+                        low = str(cls._alphaconv(field_index, low, expressions))
 
                     if not only_int_re.search(high):
-                        high = "{0}".format(cls._alphaconv(field_index, high, expressions))
+                        high = str(cls._alphaconv(field_index, high, expressions))
 
                     # normally, it's already guarded by the RE that should not accept not-int values.
                     if not only_int_re.search(str(step)):
                         raise CroniterBadCronError(
-                            "[{0}] step '{2}' in field {1} is not acceptable".format(expr_format, field_index, step)
+                            f"[{expr_format}] step '{step}' in field {field_index} is not acceptable"
                         )
                     step = int(step)
 
@@ -931,10 +929,10 @@ class croniter(object):
                                 )
                             )
 
-                    low, high = [cls.value_alias(int(_val), field_index, expressions) for _val in (low, high)]
+                    low, high = (cls.value_alias(int(_val), field_index, expressions) for _val in (low, high))
 
                     if max(low, high) > max(cls.RANGES[field_index][0], cls.RANGES[field_index][1]):
-                        raise CroniterBadCronError("{0} is out of bands".format(expr_format))
+                        raise CroniterBadCronError(f"{expr_format} is out of bands")
 
                     if from_timestamp:
                         low = cls._get_low_from_current_date_number(field_index, int(step), int(from_timestamp))
@@ -974,18 +972,14 @@ class croniter(object):
                         try:
                             rng = list(range(low, high + 1, step))
                         except ValueError as exc:
-                            raise CroniterBadCronError("invalid range: {0}".format(exc))
+                            raise CroniterBadCronError(f"invalid range: {exc}")
 
-                    rng = (
-                        ["{0}#{1}".format(item, nth) for item in rng]
-                        if field_index == DOW_FIELD and nth and nth != "l"
-                        else rng
-                    )
+                    rng = [f"{item}#{nth}" for item in rng] if field_index == DOW_FIELD and nth and nth != "l" else rng
                     e_list += [a for a in rng if a not in e_list]
                 else:
                     if t.startswith("-"):
                         raise CroniterBadCronError(
-                            "[{0}] is not acceptable," "negative numbers not allowed".format(expr_format)
+                            "[{}] is not acceptable," "negative numbers not allowed".format(expr_format)
                         )
                     if not star_or_int_re.search(t):
                         t = cls._alphaconv(field_index, t, expressions)
@@ -1000,7 +994,7 @@ class croniter(object):
                     if t not in ["*", "l"] and (
                         int(t) < cls.RANGES[field_index][0] or int(t) > cls.RANGES[field_index][1]
                     ):
-                        raise CroniterBadCronError("[{0}] is not acceptable, out of range".format(expr_format))
+                        raise CroniterBadCronError(f"[{expr_format}] is not acceptable, out of range")
 
                     res.append(t)
 
@@ -1010,7 +1004,7 @@ class croniter(object):
                         nth_weekday_of_month[t].add(nth)
 
             res = set(res)
-            res = sorted(res, key=lambda i: "{:02}".format(i) if isinstance(i, int) else i)
+            res = sorted(res, key=lambda i: f"{i:02}" if isinstance(i, int) else i)
             if len(res) == cls.LEN_MEANS_ALL[field_index]:
                 # Make sure the wildcard is used in the correct way (avoid over-optimization)
                 if (field_index == DAY_FIELD and "*" not in expressions[DOW_FIELD]) or (
@@ -1096,7 +1090,7 @@ class croniter(object):
             if int(sys.version[0]) >= 3:
                 trace = _traceback.format_exc()
                 raise CroniterBadCronError(trace)
-            raise CroniterBadCronError("{0}".format(exc))
+            raise CroniterBadCronError(str(exc))
 
     @classmethod
     def _get_low_from_current_date_number(cls, field_index, step, from_timestamp):
@@ -1189,9 +1183,7 @@ def croniter_range(
     auto_rt = datetime.datetime
     # type is used in first if branch for perfs reasons
     if type(start) is not type(stop) and not (isinstance(start, type(stop)) or isinstance(stop, type(start))):
-        raise CroniterBadTypeRangeError(
-            "The start and stop must be same type.  {0} != {1}".format(type(start), type(stop))
-        )
+        raise CroniterBadTypeRangeError(f"The start and stop must be same type.  {type(start)} != {type(stop)}")
     if isinstance(start, (float, int)):
         start, stop = (datetime.datetime.fromtimestamp(t, tzutc()).replace(tzinfo=None) for t in (start, stop))
         auto_rt = float
@@ -1278,9 +1270,9 @@ class HashExpander:
         if m["range_begin"] and m["range_end"] and m["divisor"]:
             # Example: H(30-59)/10 -> 34-59/10 (i.e. 34,44,54)
             if int(m["divisor"]) == 0:
-                raise CroniterBadCronError("Bad expression: {0}".format(expr))
+                raise CroniterBadCronError(f"Bad expression: {expr}")
 
-            return "{0}-{1}/{2}".format(
+            return "{}-{}/{}".format(
                 self.do(
                     idx,
                     hash_type=m["hash_type"],
@@ -1305,9 +1297,9 @@ class HashExpander:
         elif m["divisor"]:
             # Example: H/15 -> 7-59/15 (i.e. 7,22,37,52)
             if int(m["divisor"]) == 0:
-                raise CroniterBadCronError("Bad expression: {0}".format(expr))
+                raise CroniterBadCronError(f"Bad expression: {expr}")
 
-            return "{0}-{1}/{2}".format(
+            return "{}-{}/{}".format(
                 self.do(
                     idx,
                     hash_type=m["hash_type"],
