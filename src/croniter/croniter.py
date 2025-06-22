@@ -10,7 +10,6 @@ import re
 import struct
 import sys
 import traceback as _traceback
-from collections import OrderedDict
 from time import time
 
 from dateutil.relativedelta import relativedelta
@@ -1298,8 +1297,4 @@ class HashExpander:
         )
 
 
-EXPANDERS = OrderedDict(
-    [
-        ("hash", HashExpander),
-    ]
-)
+EXPANDERS = {"hash": HashExpander}
