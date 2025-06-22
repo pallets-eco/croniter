@@ -4,7 +4,7 @@ Changelog
 6.0.1 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Announce back that croniter is maintainer now as part of pallets-eco.
 
 
 6.0.0 (2024-12-17)

@@ -375,6 +375,7 @@ If you have contributed and your name is not listed below please let us know.
 
     - Aarni Koskela (akx)
     - ashb
+    - bdrung
     - chris-baynes
     - djmitche
     - evanpurkhiser
@@ -386,10 +387,11 @@ If you have contributed and your name is not listed below please let us know.
     - lowell80 (Kintyre)
     - mag009
     - mrmachine
+    - potiuk
     - Ryan Finnie (rfinnie)
     - salitaba
     - scop
     - shazow
     - yuzawa-san
     - zed2015
-    
+
