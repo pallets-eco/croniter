@@ -21,7 +21,7 @@ from croniter.tests import base
 
 
 class CroniterTest(base.TestCase):
-    def testSecondSec(self):
+    def test_second_sec(self):
         base = datetime(2012, 4, 6, 13, 26, 10)
         itr = croniter("* * * * * 15,25", base)
         n = itr.get_next(datetime)
@@ -32,7 +32,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(15, n.second)
         self.assertEqual(27, n.minute)
 
-    def testSecond(self):
+    def test_second(self):
         base = datetime(2012, 4, 6, 13, 26, 10)
         itr = croniter("*/1 * * * * *", base)
         n1 = itr.get_next(datetime)
@@ -43,7 +43,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(base.minute, n1.minute)
         self.assertEqual(base.second + 1, n1.second)
 
-    def testSecondRepeat(self):
+    def test_second_repeat(self):
         base = datetime(2012, 4, 6, 13, 26, 36)
         itr = croniter("* * * * * */15", base)
         n1 = itr.get_next(datetime)
@@ -68,7 +68,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(base.minute + 1, n3.minute)
         self.assertEqual(15, n3.second)
 
-    def testMinute(self):
+    def test_minute(self):
         # minute asterisk
         base = datetime(2010, 1, 23, 12, 18)
         itr = croniter("*/1 * * * *", base)
@@ -97,7 +97,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n6.minute, 0)
         self.assertEqual(n6.hour, 13)
 
-    def testHour(self):
+    def test_hour(self):
         base = datetime(2010, 1, 24, 12, 2)
         itr = croniter("0 */3 * * *", base)
         n1 = itr.get_next(datetime)
@@ -109,7 +109,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n2.hour, 0)
         self.assertEqual(n2.day, 25)
 
-    def testDay(self):
+    def test_day(self):
         base = datetime(2010, 2, 24, 12, 9)
         itr = croniter("0 0 */3 * *", base)
         n1 = itr.get_next(datetime)
@@ -140,7 +140,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n4.day, 29)
         self.assertEqual(n4.month, 2)
 
-    def testDay2(self):
+    def test_day2(self):
         base3 = datetime(2024, 2, 28)
         itr2 = croniter("* * 29 2 *", base3)
         n3 = itr2.get_prev(datetime)
@@ -148,7 +148,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n3.month, 2)
         self.assertEqual(n3.day, 29)
 
-    def testWeekDay(self):
+    def test_weekday(self):
         base = datetime(2010, 2, 25)
         itr = croniter("0 0 * * sat", base)
         n1 = itr.get_next(datetime)
@@ -174,7 +174,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n3.day, 3)
         self.assertEqual(n3.year, 2010)
 
-    def testNthWeekDay(self):
+    def test_nth_weekday(self):
         base = datetime(2010, 2, 25)
         itr = croniter("0 0 * * sat#1", base)
         n1 = itr.get_next(datetime)
@@ -201,7 +201,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n3.day, 29)
         self.assertEqual(n3.year, 2010)
 
-    def testWeekDayDayAnd(self):
+    def test_weekday_day_and(self):
         base = datetime(2010, 1, 25)
         itr = croniter("0 0 1 * mon", base, day_or=False)
         n1 = itr.get_next(datetime)
@@ -217,7 +217,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n3.day, 1)
         self.assertEqual(n3.year, 2010)
 
-    def testDomDowVixieCronBug(self):
+    def test_dom_dow_vixie_cron_bug(self):
         expr = "0 16 */2 * sat"
 
         # UNION OF "every odd-numbered day" and "every Saturday"
@@ -239,7 +239,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(itr.get_next(), datetime(2023, 6, 3, 16, 0, 0))  # Sat June  3 2023
         self.assertEqual(itr.get_next(), datetime(2023, 6, 17, 16, 0, 0))  # Sun June 17 2023
 
-    def testMonth(self):
+    def test_month(self):
         base = datetime(2010, 1, 25)
         itr = croniter("0 0 1 * *", base)
         n1 = itr.get_next(datetime)
@@ -257,7 +257,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n4.month, 1)
         self.assertEqual(n4.year, 2011)
 
-    def testLastDayOfMonth(self):
+    def test_last_day_of_month(self):
         base = datetime(2015, 9, 4)
         itr = croniter("0 0 l * *", base)
         n1 = itr.get_next(datetime)
@@ -273,7 +273,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n4.month, 12)
         self.assertEqual(n4.day, 31)
 
-    def testRangeWithUppercaseLastDayOfMonth(self):
+    def test_range_with_uppercase_last_day_of_month(self):
         base = datetime(2015, 9, 4)
         itr = croniter("0 0 29-L * *", base)
         n1 = itr.get_next(datetime)
@@ -283,7 +283,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n2.month, 9)
         self.assertEqual(n2.day, 30)
 
-    def testPrevLastDayOfMonth(self):
+    def test_prev_last_day_of_month(self):
         base = datetime(2009, 12, 31, hour=20)
         itr = croniter("0 0 l * *", base)
         n1 = itr.get_prev(datetime)
@@ -326,7 +326,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n1.month, 12)
         self.assertEqual(n1.day, 31)
 
-    def testError(self):
+    def test_error(self):
         itr = croniter("* * * * *")
         self.assertRaises(TypeError, itr.get_next, str)
         self.assertRaises(ValueError, croniter, "* * * *")
@@ -339,7 +339,7 @@ class CroniterTest(base.TestCase):
         self.assertRaises(CroniterBadCronError, croniter, "0-1& * * * *", datetime.now())
         self.assertRaises(ValueError, croniter, "* * 5-100 * *")
 
-    def testSundayToThursdayWithAlphaConversion(self):
+    def test_sunday_to_thursday_with_alpha_conversion(self):
         base = datetime(2010, 8, 25, 15, 56)  # wednesday
         itr = croniter("30 22 * * sun-thu", base)
         next = itr.get_next(datetime)
@@ -350,7 +350,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(22, next.hour)
         self.assertEqual(30, next.minute)
 
-    def testOptimizeCronExpressions(self):
+    def test_optimize_cron_expressions(self):
         """Non-optimal cron expressions that can be simplified."""
         wildcard = ["*"]
         m, h, d, mon, dow, s = range(6)
@@ -371,7 +371,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(croniter("30 1-12,0,10-23 15-21 * fri").expanded[h], wildcard)
         self.assertEqual(croniter("30 1-23,0 15-21 * fri").expanded[h], wildcard)
 
-    def testBlockDupRanges(self):
+    def test_block_dup_ranges(self):
         """Ensure that duplicate/overlapping ranges are squashed"""
         m, h, d, mon, dow, s = range(6)
         self.assertEqual(croniter("* 5,5,1-6 * * *").expanded[h], [1, 2, 3, 4, 5, 6])
@@ -381,7 +381,7 @@ class CroniterTest(base.TestCase):
         # Real life example
         self.assertEqual(croniter("59 23 * 1 wed,fri,mon-thu,tue,tue").expanded[dow], [1, 2, 3, 4, 5])
 
-    def testPrevMinute(self):
+    def test_prev_minute(self):
         base = datetime(2010, 8, 25, 15, 56)
         itr = croniter("*/1 * * * *", base)
         prev = itr.get_prev(datetime)
@@ -409,7 +409,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(23, prev.hour)
         self.assertEqual(59, prev.minute)
 
-    def testPrevDayOfMonthWithCrossing(self):
+    def test_prev_day_of_month_with_crossing(self):
         """
         Test getting previous occurrence that crosses into previous month.
         """
@@ -422,7 +422,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(prev.hour, 0)
         self.assertEqual(prev.minute, 0)
 
-    def testPrevWeekDay(self):
+    def test_prev_weekday(self):
         base = datetime(2010, 8, 25, 15, 56)
         itr = croniter("0 0 * * sat,sun", base)
         prev1 = itr.get_prev(datetime)
@@ -446,7 +446,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(prev3.hour, 0)
         self.assertEqual(prev3.minute, 0)
 
-    def testPrevNthWeekDay(self):
+    def test_prev_nth_weekday(self):
         base = datetime(2010, 8, 25, 15, 56)
         itr = croniter("0 0 * * sat#1,sun#2", base)
         prev1 = itr.get_prev(datetime)
@@ -470,7 +470,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(prev3.hour, 0)
         self.assertEqual(prev3.minute, 0)
 
-    def testPrevWeekDay2(self):
+    def test_prev_weekday2(self):
         base = datetime(2010, 8, 25, 15, 56)
         itr = croniter("10 0 * * 0", base)
         prev = itr.get_prev(datetime)
@@ -478,7 +478,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(prev.hour, 0)
         self.assertEqual(prev.minute, 10)
 
-    def testISOWeekday(self):
+    def test_iso_weekday(self):
         base = datetime(2010, 2, 25)
         itr = croniter("0 0 * * 6", base)
         n1 = itr.get_next(datetime)
@@ -489,7 +489,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n2.day, 6)
         self.assertEqual(n2.month, 3)
 
-    def testBug1(self):
+    def test_bug1(self):
         base = datetime(2012, 2, 24)
         itr = croniter("5 0 */2 * *", base)
         n1 = itr.get_prev(datetime)
@@ -500,7 +500,7 @@ class CroniterTest(base.TestCase):
         # so correct is not 22  but 23
         self.assertEqual(n1.day, 23)
 
-    def testBug2(self):
+    def test_bug2(self):
         base = datetime(2012, 1, 1, 0, 0)
         iter = croniter("0 * * 3 *", base)
         n1 = iter.get_next(datetime)
@@ -524,7 +524,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n3.hour, base.hour + 2)
         self.assertEqual(n3.minute, base.minute)
 
-    def testBug3(self):
+    def test_bug3(self):
         base = datetime(2013, 3, 1, 12, 17, 34, 257877)
         c = croniter("00 03 16,30 * *", base)
 
@@ -560,7 +560,7 @@ class CroniterTest(base.TestCase):
         except (CroniterBadDateError,) as ex:
             self.assertEqual(f"{ex}", "failed to find next date")
 
-    def testBug57(self):
+    def test_bug57(self):
         base = datetime(2012, 2, 24, 0, 0, 0)
         itr = croniter("0 4/6 * * *", base)
         n1 = itr.get_next(datetime)
@@ -657,7 +657,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(p1.day, 1)
         self.assertEqual(p1.year, 2016)
 
-    def test_rangeGenerator(self):
+    def test_range_generator(self):
         base = datetime(2013, 3, 4, 0, 0)
         itr = croniter("1-9/2 0 1 * *", base)
         n1 = itr.get_next(datetime)
@@ -671,7 +671,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n4.minute, 7)
         self.assertEqual(n5.minute, 9)
 
-    def testPreviousHour(self):
+    def test_previous_hour(self):
         base = datetime(2012, 6, 23, 17, 41)
         itr = croniter("* 10 * * *", base)
         prev1 = itr.get_prev(datetime)
@@ -681,7 +681,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(prev1.hour, 10)
         self.assertEqual(prev1.minute, 59)
 
-    def testPreviousDay(self):
+    def test_previous_day(self):
         base = datetime(2012, 6, 27, 0, 15)
         itr = croniter("* * 26 * *", base)
         prev1 = itr.get_prev(datetime)
@@ -691,7 +691,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(prev1.hour, 23)
         self.assertEqual(prev1.minute, 59)
 
-    def testPreviousMonth(self):
+    def test_previous_month(self):
         base = datetime(2012, 6, 18, 0, 15)
         itr = croniter("* * * 5 *", base)
         prev1 = itr.get_prev(datetime)
@@ -701,7 +701,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(prev1.hour, 23)
         self.assertEqual(prev1.minute, 59)
 
-    def testPreviousDow(self):
+    def test_previous_dow(self):
         base = datetime(2012, 5, 13, 18, 48)
         itr = croniter("* * * * sat", base)
         prev1 = itr.get_prev(datetime)
@@ -711,7 +711,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(prev1.hour, 23)
         self.assertEqual(prev1.minute, 59)
 
-    def testGetCurrent(self):
+    def test_get_current(self):
         base = datetime(2012, 9, 25, 11, 24)
         itr = croniter("* * * * *", base)
         res = itr.get_current(datetime)
@@ -721,7 +721,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(base.hour, res.hour)
         self.assertEqual(base.minute, res.minute)
 
-    def testTimezone(self):
+    def test_timezone(self):
         base = datetime(2013, 3, 4, 12, 15)
         itr = croniter("* * * * *", base)
         n1 = itr.get_next(datetime)
@@ -732,21 +732,21 @@ class CroniterTest(base.TestCase):
         n2 = itr2.get_next(datetime)
         self.assertEqual(n2.tzinfo.zone, "Asia/Tokyo")
 
-    def testTimezoneDateutil(self):
+    def test_timezone_dateutil(self):
         tokyo = dateutil.tz.gettz("Asia/Tokyo")
         base = datetime(2013, 3, 4, 12, 15, tzinfo=tokyo)
         itr = croniter("* * * * *", base)
         n1 = itr.get_next(datetime)
         self.assertEqual(n1.tzinfo.tzname(n1), "JST")
 
-    def testInitNoStartTime(self):
+    def test_init_no_start_time(self):
         itr = croniter("* * * * *")
         sleep(0.01)
         itr2 = croniter("* * * * *")
         # Greater does not exists in py26
         self.assertTrue(itr2.cur > itr.cur)
 
-    def testTimezoneWinterTime(self):
+    def test_timezone_winter_time(self):
         tz = pytz.timezone("Europe/Athens")
 
         expected_schedule = [
@@ -769,7 +769,7 @@ class CroniterTest(base.TestCase):
         schedule = [ct.get_prev(datetime).isoformat() for _ in range(7)]
         self.assertEqual(schedule, list(reversed(expected_schedule)))
 
-    def testTimezoneSummerTime(self):
+    def test_timezone_summer_time(self):
         tz = pytz.timezone("Europe/Athens")
 
         expected_schedule = [
@@ -2110,7 +2110,7 @@ class CroniterTest(base.TestCase):
         except OverflowError:
             raise Exception("overflow not fixed!")
 
-    def test_revert_issue_90_aka_support_DOW7(self):
+    def test_revert_issue_90_aka_support_dow7(self):
         self.assertTrue(croniter.is_valid("* * * * 1-7"))
         self.assertTrue(croniter.is_valid("* * * * 7"))
 
