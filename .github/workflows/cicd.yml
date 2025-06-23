@@ -28,9 +28,9 @@ jobs:
       uses: actions/setup-python@v5
       with: {python-version: "${{ matrix.python-version }}", cache: pip, cache-dependency-path: 'requirements/*.txt'}
     - name: install tests dependencies
-      run: pip install -r requirements/test.txt -r requirements/lint.txt -r requirements/tox.txt -r requirements/format.txt
+      run: pip install -r requirements/test.txt -r requirements/lint.txt -r requirements/mypy.txt -r requirements/tox.txt -r requirements/format.txt
     - name: formatters check
-      run: tox --current-env -e lint,fmt
+      run: tox --current-env -e lint,mypy,fmt
 
   test-py3:
     runs-on: ubuntu-latest
@@ -67,4 +67,3 @@ jobs:
          docker compose build --build-arg BASE=corpusops/croniter:32bits
          docker compose run --rm app tox --current-env -e test
       env: {COMPOSE_FILE: "docker-compose.yml:docker-compose-32bits.yml"}
-
