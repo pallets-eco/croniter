@@ -11,13 +11,15 @@ import struct
 import sys
 import traceback as _traceback
 from time import time
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import tzutc
 
+ExpandedExpression = list[Union[int, Literal["*", "l"]]]
 
-def is_32bit():
+
+def is_32bit() -> bool:
     """
     Detect if Python is running in 32-bit mode.
     Returns True if running on 32-bit Python, False for 64-bit.
@@ -292,7 +294,9 @@ class croniter:
             return self.timestamp_to_datetime(self.cur)
         return self.cur
 
-    def set_current(self, start_time, force=True):
+    def set_current(
+        self, start_time: Optional[Union[datetime.datetime, float]], force: bool = True
+    ) -> Optional[float]:
         if (force or (self.cur is None)) and start_time is not None:
             if isinstance(start_time, datetime.datetime):
                 self.tzinfo = start_time.tzinfo
@@ -304,7 +308,7 @@ class croniter:
         return self.cur
 
     @staticmethod
-    def datetime_to_timestamp(d):
+    def datetime_to_timestamp(d: datetime.datetime) -> float:
         """
         Converts a `datetime` object `d` into a UNIX timestamp.
         """
@@ -471,7 +475,13 @@ class croniter:
 
         return self._calc(current, expanded, nth_weekday_of_month, is_prev)
 
-    def _calc(self, now, expanded, nth_weekday_of_month, is_prev):
+    def _calc(
+        self,
+        now: datetime.datetime,
+        expanded: list[ExpandedExpression],
+        nth_weekday_of_month: dict[int, set[int]],
+        is_prev: bool,
+    ) -> datetime.datetime:
         if is_prev:
             nearest_diff_method = self._get_prev_nearest_diff
             offset = relativedelta(microseconds=-1)
@@ -757,7 +767,7 @@ class croniter:
         return candidate - x - range_val
 
     @staticmethod
-    def _get_nth_weekday_of_month(year, month, day_of_week):
+    def _get_nth_weekday_of_month(year: int, month: int, day_of_week: int) -> tuple[int, ...]:
         """For a given year/month return a list of days in nth-day-of-month order.
         The last weekday of the month is always [-1].
         """
@@ -1019,11 +1029,11 @@ class croniter:
     @classmethod
     def expand(
         cls,
-        expr_format,
-        hash_id=None,
-        second_at_beginning=False,
-        from_timestamp=None,
-    ):
+        expr_format: str,
+        hash_id: Optional[Union[bytes, str]] = None,
+        second_at_beginning: bool = False,
+        from_timestamp: Optional[float] = None,
+    ) -> tuple[list[ExpandedExpression], dict[int, set[int]]]:
         """
         Expand a cron expression format into a noramlized format of
         list[list[int | 'l' | '*']]. The first list representing each element
