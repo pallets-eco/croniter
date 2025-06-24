@@ -89,6 +89,8 @@ class CroniterRangeTest(base.TestCase):
         self.assertEqual(len(res), 12)
 
     def test_extra_hour_day_prio(self):
+        """Test New York jumps forward: 2020-03-08 02:00 -> 03:00 (UTC-5 -> UTC-4)."""
+
         def datetime_tz(*args, **kw):
             """Defined this in another branch.  single-use-version"""
             tzinfo = kw.pop("tzinfo")
