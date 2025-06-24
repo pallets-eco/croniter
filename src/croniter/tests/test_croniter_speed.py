@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import sys
 import unittest
 from datetime import datetime
 from timeit import Timer

@@ -1252,7 +1252,9 @@ class CroniterTest(base.TestCase):
         )
 
     def test_nth_wday_simple(self):
-        f = lambda y, m, w: croniter._get_nth_weekday_of_month(y, m, w)
+        def f(y, m, w):
+            return croniter._get_nth_weekday_of_month(y, m, w)
+
         sun, mon, tue, wed, thu, fri, sat = range(7)
 
         self.assertEqual(f(2000, 1, mon), (3, 10, 17, 24, 31))
@@ -1263,7 +1265,9 @@ class CroniterTest(base.TestCase):
         self.assertEqual(f(2000, 2, sat), (5, 12, 19, 26))
 
     def test_nth_as_last_wday_simple(self):
-        f = lambda y, m, w: croniter._get_nth_weekday_of_month(y, m, w)[-1]
+        def f(y, m, w):
+            return croniter._get_nth_weekday_of_month(y, m, w)[-1]
+
         sun, mon, tue, wed, thu, fri, sat = range(7)
         self.assertEqual(f(2000, 2, tue), 29)
         self.assertEqual(f(2000, 2, sun), 27)
@@ -1274,7 +1278,9 @@ class CroniterTest(base.TestCase):
         self.assertEqual(f(2000, 2, sat), 26)
 
     def test_wdom_core_leap_year(self):
-        f = lambda y, m, w: croniter._get_nth_weekday_of_month(y, m, w)[-1]
+        def f(y, m, w):
+            return croniter._get_nth_weekday_of_month(y, m, w)[-1]
+
         sun, mon, tue, wed, thu, fri, sat = range(7)
         self.assertEqual(f(2000, 2, tue), 29)
         self.assertEqual(f(2000, 2, sun), 27)
@@ -1413,7 +1419,8 @@ class CroniterTest(base.TestCase):
             self.assertListEqual(getn(cron_c, 5), expect_c)
 
     def test_lwom_mixup_all_fri_last_sat(self):
-        # Based on the failure of test_hash_mixup_all_fri_3rd_sat, we should expect this to fail too as this implementation simply extends nth_weekday_of_month
+        # Based on the failure of test_hash_mixup_all_fri_3rd_sat, we should expect
+        # this to fail too as this implementation simply extends nth_weekday_of_month
         cron_a = "0 0 * * L6"
         cron_b = "0 0 * * 5"
         cron_c = "0 0 * * 5,L6"
@@ -1717,7 +1724,8 @@ class CroniterTest(base.TestCase):
         start = datetime(2020, 9, 24)
         cron = "0 13 8 1,4,7,10 wed"
 
-        # Expect exception because no explicit range was provided.  Therefore, the caller should be made aware that an implicit limit was hit.
+        # Expect exception because no explicit range was provided.  Therefore, the
+        # caller should be made aware that an implicit limit was hit.
         ccron = croniter(cron, start, day_or=False)
         ccron._max_years_between_matches = 1
         iterable = ccron.all_next()
@@ -1728,7 +1736,8 @@ class CroniterTest(base.TestCase):
         n = next(iterable)
         self.assertEqual(n, datetime(2025, 1, 8, 13))
 
-        # If the explicitly given lookahead isn't enough to reach the next date, that's fine.  The caller specified the maximum gap, so no just stop iteration
+        # If the explicitly given lookahead isn't enough to reach the next date, that's fine.
+        # The caller specified the maximum gap, so no just stop iteration
         iterable = croniter(cron, start, day_or=False, max_years_between_matches=2).all_next(datetime)
         with self.assertRaises(StopIteration):
             next(iterable)
