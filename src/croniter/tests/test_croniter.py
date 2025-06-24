@@ -747,6 +747,7 @@ class CroniterTest(base.TestCase):
         self.assertTrue(itr2.cur > itr.cur)
 
     def test_timezone_winter_time(self):
+        """Test Athens jumps backwards: 2013-10-27 04:00 -> 03:00 (UTC+3 -> UTC+2)."""
         tz = pytz.timezone("Europe/Athens")
 
         expected_schedule = [
@@ -770,6 +771,7 @@ class CroniterTest(base.TestCase):
         self.assertEqual(schedule, list(reversed(expected_schedule)))
 
     def test_timezone_summer_time(self):
+        """Test Athens jumps forward: 2013-03-31 03:00 -> 04:00 (UTC+2 -> UTC+3)."""
         tz = pytz.timezone("Europe/Athens")
 
         expected_schedule = [
@@ -1162,12 +1164,16 @@ class CroniterTest(base.TestCase):
         )
 
     def test_dst_issue90_st31ny(self):
+        """Test DST gap with cron job every day at 02:01.
+
+        Paris jumps forward: 2020-03-29 02:00 -> 03:00 (UTC+1 -> UTC+2).
+        So 2020-03-29 02:01 does not exist in local time.
+
+        This fixes https://github.com/taichino/croniter/issues/90#issuecomment-605615205
+        """
         tz = pytz.timezone("Europe/Paris")
         now = datetime(2020, 3, 29, 1, 59, 55, tzinfo=tz)
         it = croniter("1 2 * * *", now)
-        #
-        # Taking around DST @ 29/03/20 01:59
-        #
         ret = [
             it.get_next(datetime).isoformat(),
             it.get_prev(datetime).isoformat(),
