@@ -229,10 +229,7 @@ class CroniterTest(base.TestCase):
 
         # INTERSECTION OF "every odd-numbered day" and "every Saturday"
         itr = croniter(
-            expr,
-            start_time=datetime(2023, 5, 2),
-            ret_type=datetime,
-            implement_cron_bug=True,
+            expr, start_time=datetime(2023, 5, 2), ret_type=datetime, implement_cron_bug=True
         )
         self.assertEqual(itr.get_next(), datetime(2023, 5, 13, 16, 0, 0))  # Sat May  13 2023
         self.assertEqual(itr.get_next(), datetime(2023, 5, 27, 16, 0, 0))  # Sat May  27 2023
@@ -379,7 +376,9 @@ class CroniterTest(base.TestCase):
         self.assertEqual(croniter("* * * * * 1,5,*/20,20,15").expanded[s], [0, 1, 5, 15, 20, 40])
         self.assertEqual(croniter("* 4,1-4,5,4 * * *").expanded[h], [1, 2, 3, 4, 5])
         # Real life example
-        self.assertEqual(croniter("59 23 * 1 wed,fri,mon-thu,tue,tue").expanded[dow], [1, 2, 3, 4, 5])
+        self.assertEqual(
+            croniter("59 23 * 1 wed,fri,mon-thu,tue,tue").expanded[dow], [1, 2, 3, 4, 5]
+        )
 
     def test_prev_minute(self):
         base = datetime(2010, 8, 25, 15, 56)
@@ -885,9 +884,7 @@ class CroniterTest(base.TestCase):
     def test_error_bad_cron(self):
         self.assertRaises(CroniterBadCronError, croniter.expand, "* * * *")
         self.assertRaises(
-            CroniterBadCronError,
-            croniter.expand,
-            ("* " * (max(VALID_LEN_EXPRESSION) + 1)).strip(),
+            CroniterBadCronError, croniter.expand, ("* " * (max(VALID_LEN_EXPRESSION) + 1)).strip()
         )
 
     def test_is_valid(self):
@@ -926,34 +923,16 @@ class CroniterTest(base.TestCase):
         _croniter = partial(croniter, "0 10 * * *", ret_type=datetime)
 
         dt = datetime(2018, 1, 2, 10, 0, 0, 500)
-        self.assertEqual(
-            _croniter(start_time=dt).get_prev(),
-            datetime(2018, 1, 2, 10, 0),
-        )
-        self.assertEqual(
-            _croniter(start_time=dt).get_next(),
-            datetime(2018, 1, 3, 10, 0),
-        )
+        self.assertEqual(_croniter(start_time=dt).get_prev(), datetime(2018, 1, 2, 10, 0))
+        self.assertEqual(_croniter(start_time=dt).get_next(), datetime(2018, 1, 3, 10, 0))
 
         dt = datetime(2018, 1, 2, 10, 0, 1, 0)
-        self.assertEqual(
-            _croniter(start_time=dt).get_prev(),
-            datetime(2018, 1, 2, 10, 0),
-        )
-        self.assertEqual(
-            _croniter(start_time=dt).get_next(),
-            datetime(2018, 1, 3, 10, 0),
-        )
+        self.assertEqual(_croniter(start_time=dt).get_prev(), datetime(2018, 1, 2, 10, 0))
+        self.assertEqual(_croniter(start_time=dt).get_next(), datetime(2018, 1, 3, 10, 0))
 
         dt = datetime(2018, 1, 2, 9, 59, 59, 999999)
-        self.assertEqual(
-            _croniter(start_time=dt).get_prev(),
-            datetime(2018, 1, 1, 10, 0),
-        )
-        self.assertEqual(
-            _croniter(start_time=dt).get_next(),
-            datetime(2018, 1, 2, 10, 0),
-        )
+        self.assertEqual(_croniter(start_time=dt).get_prev(), datetime(2018, 1, 1, 10, 0))
+        self.assertEqual(_croniter(start_time=dt).get_next(), datetime(2018, 1, 2, 10, 0))
 
     def test_invalid_zerorepeat(self):
         self.assertFalse(croniter.is_valid("*/0 * * * *"))
@@ -1046,57 +1025,54 @@ class CroniterTest(base.TestCase):
         self.assertTrue(croniter.match("0 0 * * * 1", datetime(2023, 5, 25, 0, 0, 1, 0)))
         self.assertFalse(croniter.match("0 0 * * * 1", datetime(2023, 5, 25, 0, 0, 2, 0)))
         self.assertTrue(croniter.match("31 * * * *", datetime(2019, 1, 14, 1, 31, 0, 0)))
-        self.assertTrue(croniter.match("0 0 10 * wed", datetime(2020, 6, 10, 0, 0, 0, 0), day_or=True))
-        self.assertTrue(croniter.match("0 0 10 * fri", datetime(2020, 6, 10, 0, 0, 0, 0), day_or=True))
-        self.assertTrue(croniter.match("0 0 10 * fri", datetime(2020, 6, 12, 0, 0, 0, 0), day_or=True))
-        self.assertTrue(croniter.match("0 0 10 * wed", datetime(2020, 6, 10, 0, 0, 0, 0), day_or=False))
-        self.assertFalse(croniter.match("0 0 10 * fri", datetime(2020, 6, 10, 0, 0, 0, 0), day_or=False))
-        self.assertFalse(croniter.match("0 0 10 * fri", datetime(2020, 6, 12, 0, 0, 0, 0), day_or=False))
+        self.assertTrue(
+            croniter.match("0 0 10 * wed", datetime(2020, 6, 10, 0, 0, 0, 0), day_or=True)
+        )
+        self.assertTrue(
+            croniter.match("0 0 10 * fri", datetime(2020, 6, 10, 0, 0, 0, 0), day_or=True)
+        )
+        self.assertTrue(
+            croniter.match("0 0 10 * fri", datetime(2020, 6, 12, 0, 0, 0, 0), day_or=True)
+        )
+        self.assertTrue(
+            croniter.match("0 0 10 * wed", datetime(2020, 6, 10, 0, 0, 0, 0), day_or=False)
+        )
+        self.assertFalse(
+            croniter.match("0 0 10 * fri", datetime(2020, 6, 10, 0, 0, 0, 0), day_or=False)
+        )
+        self.assertFalse(
+            croniter.match("0 0 10 * fri", datetime(2020, 6, 12, 0, 0, 0, 0), day_or=False)
+        )
 
     def test_match_handle_bad_cron(self):
         # some cron expression can"t get prev value and should not raise exception
         self.assertFalse(croniter.match("0 0 31 1 1#1", datetime(2020, 1, 31), day_or=False))
-        self.assertFalse(
-            croniter.match(
-                "0 0 31 1 * 0 2024/2",
-                datetime(2020, 1, 31),
-            )
-        )
+        self.assertFalse(croniter.match("0 0 31 1 * 0 2024/2", datetime(2020, 1, 31)))
 
     def test_match_range(self):
         self.assertTrue(
             croniter.match_range(
-                "0 0 * * *",
-                datetime(2019, 1, 13, 0, 59, 0, 0),
-                datetime(2019, 1, 14, 0, 1, 0, 0),
+                "0 0 * * *", datetime(2019, 1, 13, 0, 59, 0, 0), datetime(2019, 1, 14, 0, 1, 0, 0)
             )
         )
         self.assertFalse(
             croniter.match_range(
-                "0 0 * * *",
-                datetime(2019, 1, 13, 0, 1, 0, 0),
-                datetime(2019, 1, 13, 0, 59, 0, 0),
+                "0 0 * * *", datetime(2019, 1, 13, 0, 1, 0, 0), datetime(2019, 1, 13, 0, 59, 0, 0)
             )
         )
         self.assertTrue(
             croniter.match_range(
-                "0 0 * * * 1",
-                datetime(2023, 5, 25, 0, 0, 0, 0),
-                datetime(2023, 5, 25, 0, 0, 2, 0),
+                "0 0 * * * 1", datetime(2023, 5, 25, 0, 0, 0, 0), datetime(2023, 5, 25, 0, 0, 2, 0)
             )
         )
         self.assertFalse(
             croniter.match_range(
-                "0 0 * * * 1",
-                datetime(2023, 5, 25, 0, 0, 2, 0),
-                datetime(2023, 5, 25, 0, 0, 4, 0),
+                "0 0 * * * 1", datetime(2023, 5, 25, 0, 0, 2, 0), datetime(2023, 5, 25, 0, 0, 4, 0)
             )
         )
         self.assertTrue(
             croniter.match_range(
-                "0 0 * * * 1",
-                datetime(2023, 5, 25, 0, 0, 1, 0),
-                datetime(2023, 5, 25, 0, 0, 4, 0),
+                "0 0 * * * 1", datetime(2023, 5, 25, 0, 0, 1, 0), datetime(2023, 5, 25, 0, 0, 4, 0)
             )
         )
         self.assertTrue(
@@ -1449,16 +1425,8 @@ class CroniterTest(base.TestCase):
         cron_a = "0 0 * * 6#1"
         cron_b = "0 0 * * L6"
         cron_c = "0 0 * * L6,6#1"
-        expect_a = [
-            datetime(2021, 3, 6),
-            datetime(2021, 4, 3),
-            datetime(2021, 5, 1),
-        ]
-        expect_b = [
-            datetime(2021, 3, 27),
-            datetime(2021, 4, 24),
-            datetime(2021, 5, 29),
-        ]
+        expect_a = [datetime(2021, 3, 6), datetime(2021, 4, 3), datetime(2021, 5, 1)]
+        expect_b = [datetime(2021, 3, 27), datetime(2021, 4, 24), datetime(2021, 5, 29)]
         expect_c = sorted(expect_a + expect_b)
 
         def getn(expr, n):
@@ -1475,16 +1443,8 @@ class CroniterTest(base.TestCase):
         cron_a = "0 0 * * 1#4"
         cron_b = "0 0 * * L1"
         cron_c = "0 0 * * 1#4,L1"
-        expect_a = [
-            datetime(2021, 11, 22),
-            datetime(2021, 12, 27),
-            datetime(2022, 1, 24),
-        ]
-        expect_b = [
-            datetime(2021, 11, 29),
-            datetime(2021, 12, 27),
-            datetime(2022, 1, 31),
-        ]
+        expect_a = [datetime(2021, 11, 22), datetime(2021, 12, 27), datetime(2022, 1, 24)]
+        expect_b = [datetime(2021, 11, 29), datetime(2021, 12, 27), datetime(2022, 1, 31)]
         expect_c = sorted(set(expect_a) | set(expect_b))
 
         def getn(expr, n):
@@ -1667,10 +1627,7 @@ class CroniterTest(base.TestCase):
         ret = []
         for i in range(1, 31):
             ret.append(
-                (
-                    i,
-                    croniter("35 * 1-l/8 * *", datetime(2020, 1, i), ret_type=datetime).get_next(),
-                )
+                (i, croniter("35 * 1-l/8 * *", datetime(2020, 1, i), ret_type=datetime).get_next())
             )
             i += 1
         self.assertEqual(
@@ -1716,7 +1673,8 @@ class CroniterTest(base.TestCase):
         with self.assertRaises(CroniterBadDateError):
             it = croniter(cron, start, day_or=False, max_years_between_matches=1)
             it.get_next()
-        # New functionality (0.3.35) allowing croniter to find spare matches of cron patterns across multiple years
+        # New functionality (0.3.35) allowing croniter to find spare matches of cron
+        # patterns across multiple years
         it = croniter(cron, start, day_or=False, max_years_between_matches=5)
         self.assertEqual(it.get_next(datetime), datetime(2025, 1, 8, 13))
 
@@ -1732,13 +1690,17 @@ class CroniterTest(base.TestCase):
         with self.assertRaises(CroniterBadDateError):
             next(iterable)
 
-        iterable = croniter(cron, start, day_or=False, max_years_between_matches=5).all_next(datetime)
+        iterable = croniter(cron, start, day_or=False, max_years_between_matches=5).all_next(
+            datetime
+        )
         n = next(iterable)
         self.assertEqual(n, datetime(2025, 1, 8, 13))
 
         # If the explicitly given lookahead isn't enough to reach the next date, that's fine.
         # The caller specified the maximum gap, so no just stop iteration
-        iterable = croniter(cron, start, day_or=False, max_years_between_matches=2).all_next(datetime)
+        iterable = croniter(cron, start, day_or=False, max_years_between_matches=2).all_next(
+            datetime
+        )
         with self.assertRaises(StopIteration):
             next(iterable)
 
@@ -2012,10 +1974,7 @@ class CroniterTest(base.TestCase):
     def test_get_next_fails_with_expand_from_start_time_true(self):
         expanded_croniter = croniter("0 0 */5 * *", expand_from_start_time=True)
         self.assertRaises(
-            ValueError,
-            expanded_croniter.get_next,
-            datetime,
-            start_time=datetime(2024, 7, 12),
+            ValueError, expanded_croniter.get_next, datetime, start_time=datetime(2024, 7, 12)
         )
 
     def test_get_next_update_current(self):
@@ -2075,7 +2034,10 @@ class CroniterTest(base.TestCase):
         self.assertEqual(retn, retans)
 
         cron.set_current(datetime(2024, 7, 12), force=True)
-        uretn = [(cron.get_next(datetime, update_current=False), cron.get_current(datetime)) for a in range(3)]
+        uretn = [
+            (cron.get_next(datetime, update_current=False), cron.get_current(datetime))
+            for a in range(3)
+        ]
         self.assertEqual(
             uretn,
             [
@@ -2086,7 +2048,10 @@ class CroniterTest(base.TestCase):
         )
 
         cron.set_current(datetime(2024, 7, 12), force=True)
-        uretp = [(cron.get_prev(datetime, update_current=False), cron.get_current(datetime)) for a in range(3)]
+        uretp = [
+            (cron.get_prev(datetime, update_current=False), cron.get_current(datetime))
+            for a in range(3)
+        ]
         self.assertEqual(
             uretp,
             [
@@ -2336,7 +2301,9 @@ class CroniterTest(base.TestCase):
             # fmt: on
         )
 
-    def _test_cron_ranges(self, expr, wanted, generator=None, loops=None, start=None, is_prev=None):
+    def _test_cron_ranges(
+        self, expr, wanted, generator=None, loops=None, start=None, is_prev=None
+    ):
         rets = (generator or gen_x_results)(
             expr, loops=loops or 10, start=start or datetime(2024, 1, 1), is_prev=is_prev
         )

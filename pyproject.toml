@@ -52,7 +52,7 @@ exclude = ["croniter.tests*"]
 croniter = ["tests*"]
 
 [tool.black]
-line-length = 119
+line-length = 99
 target-version = [
   'py39',
   'py310',
@@ -61,4 +61,4 @@ target-version = [
 ]
 
 [tool.pylint.format]
-max-line-length = 119
+max-line-length = 99
