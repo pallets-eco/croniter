@@ -801,37 +801,29 @@ class CroniterTest(base.TestCase):
         # -> 2017-03-26 01:59+1:00 -> 03:00+2:00
         local_date = tz.localize(datetime(2017, 3, 26))
         val = croniter("0 0 * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 3, 27)))
+        self.assertEqual(val.isoformat(), "2017-03-27T00:00:00+02:00")
         #
         local_date = tz.localize(datetime(2017, 3, 26, 1))
         cr = croniter("0 * * * *", local_date)
         val = cr.get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 3, 26, 3)))
+        self.assertEqual(val.isoformat(), "2017-03-26T03:00:00+02:00")
         val = cr.get_current(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 3, 26, 3)))
+        self.assertEqual(val.isoformat(), "2017-03-26T03:00:00+02:00")
 
         # -> 2017-10-29 02:59+2:00 -> 02:00+1:00
         local_date = tz.localize(datetime(2017, 10, 29))
         val = croniter("0 0 * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 30)))
+        self.assertEqual(val.isoformat(), "2017-10-30T00:00:00+01:00")
         local_date = tz.localize(datetime(2017, 10, 29, 1, 59))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(
-            val.replace(tzinfo=None),
-            tz.localize(datetime(2017, 10, 29, 2)).replace(tzinfo=None),
-        )
-        local_date = tz.localize(datetime(2017, 10, 29, 2))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 3)))
-        local_date = tz.localize(datetime(2017, 10, 29, 3))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 4)))
-        local_date = tz.localize(datetime(2017, 10, 29, 4))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 5)))
-        local_date = tz.localize(datetime(2017, 10, 29, 5))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 6)))
+        cr = croniter("0 * * * *", local_date)
+        schedule = [cr.get_next(datetime).isoformat() for _ in range(4)]
+        expected_schedule = [
+            "2017-10-29T02:00:00+02:00",
+            "2017-10-29T02:00:00+01:00",
+            "2017-10-29T03:00:00+01:00",
+            "2017-10-29T04:00:00+01:00",
+        ]
+        self.assertEqual(schedule, expected_schedule)
 
     def test_std_dst2(self):
         """
@@ -880,12 +872,10 @@ class CroniterTest(base.TestCase):
 
         schedule = croniter("0 0 24 * *", tz.localize(datetime(2020, 4, 15)))
         val1 = schedule.get_prev(datetime)
-        dt1 = tz.localize(datetime(2020, 3, 24))
-        self.assertEqual(val1, dt1)
+        self.assertEqual(val1.isoformat(), "2020-03-24T00:00:00+10:30")
 
         val2 = schedule.get_next(datetime)
-        dt2 = tz.localize(datetime(2020, 4, 24))
-        self.assertEqual(val2, dt2)
+        self.assertEqual(val2.isoformat(), "2020-04-24T00:00:00+09:30")
 
     def test_error_alpha_cron(self):
         self.assertRaises(CroniterNotAlphaError, croniter.expand, "* * * janu-jun *")
