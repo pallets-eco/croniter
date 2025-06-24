@@ -3,10 +3,9 @@
 import os
 import sys
 import unittest
+import zoneinfo
 from datetime import datetime
 from timeit import Timer
-
-import pytz
 
 from croniter import croniter
 from croniter.tests import base
@@ -85,7 +84,7 @@ class CroniterSpeedTest(base.TestCase):
             itr.get_prev(datetime)
 
         # dst regression test
-        tz = pytz.timezone("Europe/Bucharest")
+        tz = zoneinfo.ZoneInfo("Europe/Bucharest")
         offsets = set()
         dst_cron = "15 0,3 * 3 *"
         dst_iters = int(2 * 31 * (iterations / 40))
