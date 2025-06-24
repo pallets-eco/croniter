@@ -1235,7 +1235,7 @@ class CroniterTest(base.TestCase):
     def test_dst_iter(self):
         """Test Hebron jumps one hour forward on 2022-03-27 00:00 (UTC+2 -> UTC+3)."""
         tz = pytz.timezone("Asia/Hebron")
-        now = datetime(2022, 3, 26, 0, 0, 0, tzinfo=tz)
+        now = tz.localize(datetime(2022, 3, 25, 0, 0, 0))
         it = croniter("0 0 * * *", now)
         ret = [
             it.get_next(datetime).isoformat(),
