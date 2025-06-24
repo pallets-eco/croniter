@@ -487,7 +487,10 @@ class croniter:
             offset = relativedelta(microseconds=-1)
         else:
             nearest_diff_method = self._get_next_nearest_diff
-            offset = relativedelta(seconds=1) if len(expanded) > UNIX_CRON_LEN else relativedelta(minutes=1)
+            if len(expanded) > UNIX_CRON_LEN:
+                offset = relativedelta(seconds=1)
+            else:
+                offset = relativedelta(minutes=1)
         dst = now + offset
         if len(expanded) > UNIX_CRON_LEN:
             dst = dst.replace(microsecond=0)
@@ -971,7 +974,8 @@ class croniter:
                         except ValueError as exc:
                             raise CroniterBadCronError(f"invalid range: {exc}")
 
-                    rng = [f"{item}#{nth}" for item in rng] if field_index == DOW_FIELD and nth and nth != "l" else rng
+                    if field_index == DOW_FIELD and nth and nth != "l":
+                        rng = [f"{item}#{nth}" for item in rng]
                     e_list += [a for a in rng if a not in e_list]
                 else:
                     if t.startswith("-"):
