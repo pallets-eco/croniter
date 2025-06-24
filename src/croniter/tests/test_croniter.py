@@ -815,23 +815,15 @@ class CroniterTest(base.TestCase):
         val = croniter("0 0 * * *", local_date).get_next(datetime)
         self.assertEqual(val, tz.localize(datetime(2017, 10, 30)))
         local_date = tz.localize(datetime(2017, 10, 29, 1, 59))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(
-            val.replace(tzinfo=None),
-            tz.localize(datetime(2017, 10, 29, 2)).replace(tzinfo=None),
-        )
-        local_date = tz.localize(datetime(2017, 10, 29, 2))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 3)))
-        local_date = tz.localize(datetime(2017, 10, 29, 3))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 4)))
-        local_date = tz.localize(datetime(2017, 10, 29, 4))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 5)))
-        local_date = tz.localize(datetime(2017, 10, 29, 5))
-        val = croniter("0 * * * *", local_date).get_next(datetime)
-        self.assertEqual(val, tz.localize(datetime(2017, 10, 29, 6)))
+        cr = croniter("0 * * * *", local_date)
+        schedule = [cr.get_next(datetime).isoformat() for _ in range(4)]
+        expected_schedule = [
+            "2017-10-29T02:00:00+02:00",
+            "2017-10-29T02:00:00+01:00",
+            "2017-10-29T03:00:00+01:00",
+            "2017-10-29T04:00:00+01:00",
+        ]
+        self.assertEqual(schedule, expected_schedule)
 
     def test_std_dst2(self):
         """
