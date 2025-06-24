@@ -11,7 +11,9 @@ class CroniterHashBase(base.TestCase):
     epoch = datetime(2020, 1, 1, 0, 0)
     hash_id = "hello"
 
-    def _test_iter(self, definition, expectations, delta, epoch=None, hash_id=None, next_type=None):
+    def _test_iter(
+        self, definition, expectations, delta, epoch=None, hash_id=None, next_type=None
+    ):
         if epoch is None:
             epoch = self.epoch
         if hash_id is None:
@@ -73,10 +75,7 @@ class CroniterHashTest(CroniterHashBase):
         """Test a different hash_id returns different results given same definition and epoch"""
         self._test_iter("H H * * *", datetime(2020, 1, 1, 11, 10), timedelta(days=1))
         self._test_iter(
-            "H H * * *",
-            datetime(2020, 1, 1, 0, 24),
-            timedelta(days=1),
-            hash_id="different id",
+            "H H * * *", datetime(2020, 1, 1, 0, 24), timedelta(days=1), hash_id="different id"
         )
 
     def test_hash_epoch_change(self):
@@ -92,12 +91,16 @@ class CroniterHashTest(CroniterHashBase):
     def test_hash_range(self):
         """Test a hashed range definition"""
         self._test_iter("H H H(3-5) * *", datetime(2020, 1, 5, 11, 10), timedelta(days=31))
-        self._test_iter("H H * * * 0 H(2025-2030)", datetime(2029, 1, 1, 11, 10), timedelta(days=1))
+        self._test_iter(
+            "H H * * * 0 H(2025-2030)", datetime(2029, 1, 1, 11, 10), timedelta(days=1)
+        )
 
     def test_hash_division(self):
         """Test a hashed division definition"""
         self._test_iter("H H/3 * * *", datetime(2020, 1, 1, 2, 10), timedelta(hours=3))
-        self._test_iter("H H H H * H H/2", datetime(2020, 9, 1, 11, 10, 32), timedelta(days=365 * 2))
+        self._test_iter(
+            "H H H H * H H/2", datetime(2020, 9, 1, 11, 10, 32), timedelta(days=365 * 2)
+        )
 
     def test_hash_range_division(self):
         """Test a hashed range + division definition"""
@@ -106,7 +109,9 @@ class CroniterHashTest(CroniterHashBase):
     def test_hash_invalid_range(self):
         """Test validation logic for range_begin and range_end values"""
         try:
-            self._test_iter("H(11-10) H * * *", datetime(2020, 1, 1, 11, 31), timedelta(minutes=10))
+            self._test_iter(
+                "H(11-10) H * * *", datetime(2020, 1, 1, 11, 31), timedelta(minutes=10)
+            )
         except CroniterBadCronError as ex:
             self.assertEqual(str(ex), "Range end must be greater than range begin")
 

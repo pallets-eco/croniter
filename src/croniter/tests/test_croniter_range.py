@@ -5,7 +5,13 @@ from datetime import datetime
 
 import pytz
 
-from croniter import CroniterBadCronError, CroniterBadDateError, CroniterBadTypeRangeError, croniter, croniter_range
+from croniter import (
+    CroniterBadCronError,
+    CroniterBadDateError,
+    CroniterBadTypeRangeError,
+    croniter,
+    croniter_range,
+)
 from croniter.tests import base
 
 
@@ -118,20 +124,25 @@ class CroniterRangeTest(base.TestCase):
         with self.assertRaises(CroniterBadDateError):
             it = croniter(cron, start, day_or=False, max_years_between_matches=1)
             it.get_next()
-        # New functionality (0.3.35) allowing croniter to find spare matches of cron patterns across multiple years
+        # New functionality (0.3.35) allowing croniter to find spare matches of cron
+        # patterns across multiple years
         it = croniter(cron, start, day_or=False, max_years_between_matches=5)
         self.assertEqual(it.get_next(datetime), datetime(2025, 1, 8, 13))
 
     def test_issue145_range(self):
         cron = "0 13 8 1,4,7,10 wed"
-        matches = list(croniter_range(datetime(2020, 1, 1), datetime(2020, 12, 31), cron, day_or=False))
+        matches = list(
+            croniter_range(datetime(2020, 1, 1), datetime(2020, 12, 31), cron, day_or=False)
+        )
         self.assertEqual(len(matches), 3)
         self.assertEqual(matches[0], datetime(2020, 1, 8, 13))
         self.assertEqual(matches[1], datetime(2020, 4, 8, 13))
         self.assertEqual(matches[2], datetime(2020, 7, 8, 13))
 
         # No matches within this range; therefore expect empty list
-        matches = list(croniter_range(datetime(2020, 9, 30), datetime(2020, 10, 30), cron, day_or=False))
+        matches = list(
+            croniter_range(datetime(2020, 9, 30), datetime(2020, 10, 30), cron, day_or=False)
+        )
         self.assertEqual(len(matches), 0)
 
     def test_croniter_range_derived_class(self):
@@ -166,10 +177,7 @@ class CroniterRangeTest(base.TestCase):
         with self.assertRaises(CroniterBadCronError):
             # Should similarly fail because the custom class rejects seconds expr
             i = croniter_range(
-                datetime(2020, 1, 1),
-                datetime(2020, 12, 31),
-                cron,
-                _croniter=croniter_nosec,
+                datetime(2020, 1, 1), datetime(2020, 12, 31), cron, _croniter=croniter_nosec
             )
             next(i)
 
