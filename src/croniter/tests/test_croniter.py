@@ -878,6 +878,42 @@ class CroniterTest(base.TestCase):
         val2 = schedule.get_next(datetime)
         self.assertEqual(val2.isoformat(), "2020-04-24T00:00:00+09:30")
 
+    def test_dst_daily(self) -> None:
+        """
+        DST test for daily schedule
+
+        London jumps forward: 2025-03-30 01:00 -> 02:00 (UTC+0 -> UTC+1).
+        """
+        london = dateutil.tz.gettz("Europe/London")
+        start = datetime(2025, 3, 30, tzinfo=london)
+        ct = croniter("7 0 * * *", start)
+        schedule = [ct.get_next(datetime).isoformat() for _ in range(3)]
+        expected_schedule = [
+            "2025-03-30T00:07:00+00:00",
+            "2025-03-31T00:07:00+01:00",
+            "2025-04-01T00:07:00+01:00",
+        ]
+        self.assertEqual(schedule, expected_schedule)
+
+    def test_dst_hourly(self) -> None:
+        """
+        DST test for hourly schedule
+
+        This fixes https://github.com/pallets-eco/croniter/issues/149
+
+        London jumps forward: 2025-03-30 01:00 -> 02:00 (UTC+0 -> UTC+1).
+        """
+        london = dateutil.tz.gettz("Europe/London")
+        start = datetime(2025, 3, 30, tzinfo=london)
+        ct = croniter("7 * * * *", start)
+        schedule = [ct.get_next(datetime).isoformat() for _ in range(3)]
+        expected_schedule = [
+            "2025-03-30T00:07:00+00:00",
+            "2025-03-30T02:07:00+01:00",
+            "2025-03-30T03:07:00+01:00",
+        ]
+        self.assertEqual(schedule, expected_schedule)
+
     def test_error_alpha_cron(self):
         self.assertRaises(CroniterNotAlphaError, croniter.expand, "* * * janu-jun *")
 
@@ -1147,66 +1183,21 @@ class CroniterTest(base.TestCase):
 
         This fixes https://github.com/taichino/croniter/issues/90#issuecomment-605615205
         """
+        expected_schedule = [
+            "2020-03-28T02:01:00+01:00",  # only checked for get_prev
+            "2020-03-29T03:00:00+02:00",
+            "2020-03-30T02:01:00+02:00",
+            "2020-03-31T02:01:00+02:00",  # only checked for get_next
+        ]
+
         tz = pytz.timezone("Europe/Paris")
-        now = datetime(2020, 3, 29, 1, 59, 55, tzinfo=tz)
+        now = tz.localize(datetime(2020, 3, 29, 1, 59, 55))
         it = croniter("1 2 * * *", now)
-        ret = [
-            it.get_next(datetime).isoformat(),
-            it.get_prev(datetime).isoformat(),
-            it.get_prev(datetime).isoformat(),
-            it.get_next(datetime).isoformat(),
-            it.get_next(datetime).isoformat(),
-        ]
-        self.assertEqual(
-            ret,
-            [
-                "2020-03-30T02:01:00+02:00",
-                "2020-03-29T01:01:00+01:00",
-                "2020-03-28T03:01:00+01:00",
-                "2020-03-29T03:01:00+02:00",
-                "2020-03-30T02:01:00+02:00",
-            ],
-        )
-        #
-        nowp = datetime(2020, 3, 28, 1, 58, 55, tzinfo=tz)
-        itp = croniter("1 2 * * *", nowp)
-        retp = [
-            itp.get_next(datetime).isoformat(),
-            itp.get_prev(datetime).isoformat(),
-            itp.get_prev(datetime).isoformat(),
-            itp.get_next(datetime).isoformat(),
-            itp.get_next(datetime).isoformat(),
-        ]
-        self.assertEqual(
-            retp,
-            [
-                "2020-03-29T03:01:00+02:00",
-                "2020-03-29T01:01:00+01:00",
-                "2020-03-28T03:01:00+01:00",
-                "2020-03-29T03:01:00+02:00",
-                "2020-03-30T02:01:00+02:00",
-            ],
-        )
-        #
-        nowt = datetime(2020, 3, 29, 2, 0, 0, tzinfo=tz)
-        itt = croniter("1 2 * * *", nowt)
-        rett = [
-            itt.get_next(datetime).isoformat(),
-            itt.get_prev(datetime).isoformat(),
-            itt.get_prev(datetime).isoformat(),
-            itt.get_next(datetime).isoformat(),
-            itt.get_next(datetime).isoformat(),
-        ]
-        self.assertEqual(
-            rett,
-            [
-                "2020-03-30T02:01:00+02:00",
-                "2020-03-29T01:01:00+01:00",
-                "2020-03-28T03:01:00+01:00",
-                "2020-03-29T03:01:00+02:00",
-                "2020-03-30T02:01:00+02:00",
-            ],
-        )
+        schedule = [it.get_next(datetime).isoformat() for _ in range(3)]
+        self.assertEqual(schedule, expected_schedule[1:])
+
+        schedule = [it.get_prev(datetime).isoformat() for _ in range(3)]
+        self.assertEqual(schedule, list(reversed(expected_schedule[:-1])))
 
     def test_dst_iter(self):
         """Test Hebron jumps one hour forward on 2022-03-27 00:00 (UTC+2 -> UTC+3)."""
