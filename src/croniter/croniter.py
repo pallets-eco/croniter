@@ -666,22 +666,6 @@ class croniter:
         raise CroniterBadDateError("failed to find next date")
 
     @staticmethod
-    def _get_next_nearest(x, to_check):
-        small = [item for item in to_check if item < x]
-        large = [item for item in to_check if item >= x]
-        large.extend(small)
-        return large[0]
-
-    @staticmethod
-    def _get_prev_nearest(x, to_check):
-        small = [item for item in to_check if item <= x]
-        large = [item for item in to_check if item > x]
-        small.reverse()
-        large.reverse()
-        small.extend(large)
-        return small[0]
-
-    @staticmethod
     def _get_next_nearest_diff(x, to_check, range_val):
         """
         `range_val` is the range of a field.
