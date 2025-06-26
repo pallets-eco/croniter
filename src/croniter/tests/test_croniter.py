@@ -720,6 +720,14 @@ class CroniterTest(base.TestCase):
         self.assertEqual(base.hour, res.hour)
         self.assertEqual(base.minute, res.minute)
 
+    def test_first_of_march(self):
+        """Test not skipping first of March.
+
+        This fixes https://github.com/pallets-eco/croniter/issues/1
+        """
+        it = croniter("0 0 */10 * *", datetime(2025, 2, 22))
+        self.assertEqual(it.get_next(datetime).isoformat(), "2025-03-01T00:00:00")
+
     def test_timezone(self):
         base = datetime(2013, 3, 4, 12, 15)
         itr = croniter("* * * * *", base)
