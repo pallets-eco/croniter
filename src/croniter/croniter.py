@@ -11,7 +11,7 @@ import struct
 import sys
 import traceback as _traceback
 from time import time
-from typing import Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import datetime_exists, tzutc
@@ -121,7 +121,7 @@ SECOND_CRON_LEN = len(SECOND_FIELDS)
 YEAR_CRON_LEN = len(YEAR_FIELDS)
 # retrocompat
 VALID_LEN_EXPRESSION = {a for a in CRON_FIELDS if isinstance(a, int)}
-TIMESTAMP_TO_DT_CACHE: dict[int, datetime.datetime] = {}
+TIMESTAMP_TO_DT_CACHE: dict[tuple[float, str], datetime.datetime] = {}
 EXPRESSIONS: dict[tuple[str, Optional[bytes], bool], list[str]] = {}
 MARKER = object()
 
@@ -372,17 +372,15 @@ class croniter:
 
     _datetime_to_timestamp = datetime_to_timestamp  # retrocompat
 
-    def timestamp_to_datetime(self, timestamp, tzinfo=MARKER):
+    def timestamp_to_datetime(self, timestamp: float, tzinfo: Any = MARKER) -> datetime.datetime:
         """
         Converts a UNIX `timestamp` into a `datetime` object.
         """
         if tzinfo is MARKER:  # allow to give tzinfo=None even if self.tzinfo is set
             tzinfo = self.tzinfo
-        k = timestamp
-        if tzinfo:
-            k = (timestamp, repr(tzinfo))
+        key = (timestamp, repr(tzinfo))
         try:
-            return TIMESTAMP_TO_DT_CACHE[k]
+            return TIMESTAMP_TO_DT_CACHE[key]
         except KeyError:
             pass
         if OVERFLOW32B_MODE:
@@ -393,7 +391,7 @@ class croniter:
             result = datetime.datetime.fromtimestamp(timestamp, tz=tzutc()).replace(tzinfo=None)
         if tzinfo:
             result = result.replace(tzinfo=UTC_DT).astimezone(tzinfo)
-        TIMESTAMP_TO_DT_CACHE[(result, repr(result.tzinfo))] = result
+        TIMESTAMP_TO_DT_CACHE[key] = result
         return result
 
     _timestamp_to_datetime = timestamp_to_datetime  # retrocompat
