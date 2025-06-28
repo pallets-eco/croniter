@@ -109,6 +109,13 @@ About DST
 =========
 Be sure to init your croniter instance with a TZ aware datetime for this to work!
 
+Example using zoneinfo::
+
+    >>> import zoneinfo
+    >>> tz = zoneinfo.ZoneInfo("Europe/Berlin")
+    >>> local_date = datetime(2017, 3, 26, tzinfo=tz)
+    >>> val = croniter('0 0 * * *', local_date).get_next(datetime)
+
 Example using pytz::
 
     >>> import pytz
@@ -394,4 +401,3 @@ If you have contributed and your name is not listed below please let us know.
     - shazow
     - yuzawa-san
     - zed2015
-

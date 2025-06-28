@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import unittest
+import zoneinfo
 from datetime import datetime
 
 import pytz
@@ -85,8 +86,8 @@ class CroniterRangeTest(base.TestCase):
         with self.assertRaises(TypeError):
             list(croniter_range(f_start1, dt_stop1, "0 * * * *"))
 
-    def test_timezone_dst(self):
-        """Test across DST transition, which technically is a timzone change."""
+    def test_timezone_dst_pytz(self):
+        """Test across DST transition, which technically is a timzone change in pytz."""
         tz = pytz.timezone("America/New_York")
         start = tz.localize(datetime(2020, 10, 30))
         stop = tz.localize(datetime(2020, 11, 10))
@@ -95,6 +96,23 @@ class CroniterRangeTest(base.TestCase):
         self.assertEqual(len(res), 12)
 
     def test_extra_hour_day_prio(self):
+        """Test New York jumps forward: 2020-03-08 02:00 -> 03:00 (UTC-5 -> UTC-4)."""
+        tz = zoneinfo.ZoneInfo("America/New_York")
+        cron = "0 3 * * *"
+        start = datetime(2020, 3, 7, tzinfo=tz)
+        end = datetime(2020, 3, 11, tzinfo=tz)
+        ret = [i.isoformat() for i in croniter_range(start, end, cron)]
+        self.assertEqual(
+            ret,
+            [
+                "2020-03-07T03:00:00-05:00",
+                "2020-03-08T03:00:00-04:00",
+                "2020-03-09T03:00:00-04:00",
+                "2020-03-10T03:00:00-04:00",
+            ],
+        )
+
+    def test_extra_hour_day_prio_pytz(self):
         """Test New York jumps forward: 2020-03-08 02:00 -> 03:00 (UTC-5 -> UTC-4)."""
 
         def datetime_tz(*args, **kw):
