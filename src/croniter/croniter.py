@@ -11,7 +11,7 @@ import struct
 import sys
 import traceback as _traceback
 from time import time
-from typing import Literal, Optional, Union
+from typing import Any, Literal, Optional, Union
 
 from dateutil.relativedelta import relativedelta
 from dateutil.tz import datetime_exists, tzutc
@@ -372,7 +372,7 @@ class croniter:
 
     _datetime_to_timestamp = datetime_to_timestamp  # retrocompat
 
-    def timestamp_to_datetime(self, timestamp, tzinfo=MARKER):
+    def timestamp_to_datetime(self, timestamp: float, tzinfo: Any = MARKER) -> datetime.datetime:
         """
         Converts a UNIX `timestamp` into a `datetime` object.
         """
