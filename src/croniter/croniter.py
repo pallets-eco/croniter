@@ -283,7 +283,7 @@ class croniter:
         is_prev=False,
         hash_id=None,
         implement_cron_bug=False,
-        second_at_beginning=None,
+        second_at_beginning=False,
         expand_from_start_time=False,
     ):
         self._ret_type = ret_type
