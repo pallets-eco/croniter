@@ -308,10 +308,10 @@ class croniter:
 
         self.tzinfo = None
 
-        self.start_time = None
-        self.dst_start_time = None
-        self.cur = None
-        self.set_current(start_time, force=False)
+        self.start_time = 0.0
+        self.dst_start_time = 0.0
+        self.cur = 0.0
+        self.set_current(start_time, force=True)
 
         self.expanded, self.nth_weekday_of_month = self.expand(
             expr_format,
@@ -352,7 +352,7 @@ class croniter:
 
     def set_current(
         self, start_time: Optional[Union[datetime.datetime, float]], force: bool = True
-    ) -> Optional[float]:
+    ) -> float:
         if (force or (self.cur is None)) and start_time is not None:
             if isinstance(start_time, datetime.datetime):
                 self.tzinfo = start_time.tzinfo
