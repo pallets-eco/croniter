@@ -275,17 +275,17 @@ class croniter:
 
     def __init__(
         self,
-        expr_format,
-        start_time=None,
-        ret_type=float,
-        day_or=True,
-        max_years_between_matches=None,
-        is_prev=False,
-        hash_id=None,
-        implement_cron_bug=False,
-        second_at_beginning=False,
-        expand_from_start_time=False,
-    ):
+        expr_format: str,
+        start_time: Optional[Union[datetime.datetime, float]] = None,
+        ret_type: type = float,
+        day_or: bool = True,
+        max_years_between_matches: Optional[int] = None,
+        is_prev: bool = False,
+        hash_id: Optional[Union[bytes, str]] = None,
+        implement_cron_bug: bool = False,
+        second_at_beginning: bool = False,
+        expand_from_start_time: bool = False,
+    ) -> None:
         self._ret_type = ret_type
         self._day_or = day_or
         self._implement_cron_bug = implement_cron_bug
@@ -306,7 +306,7 @@ class croniter:
         if start_time is None:
             start_time = time()
 
-        self.tzinfo = None
+        self.tzinfo: Optional[datetime.tzinfo] = None
 
         self.start_time = 0.0
         self.dst_start_time = 0.0
