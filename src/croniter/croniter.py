@@ -299,7 +299,7 @@ class croniter:
                 hash_id = hash_id.encode("UTF-8")
 
         self._max_years_btw_matches_explicitly_set = max_years_between_matches is not None
-        if not self._max_years_btw_matches_explicitly_set:
+        if max_years_between_matches is None:
             max_years_between_matches = 50
         self._max_years_between_matches = max(int(max_years_between_matches), 1)
 
