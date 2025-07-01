@@ -292,7 +292,7 @@ class croniter:
         self.second_at_beginning = bool(second_at_beginning)
         self._expand_from_start_time = expand_from_start_time
 
-        if hash_id:
+        if hash_id is not None:
             if not isinstance(hash_id, (bytes, str)):
                 raise TypeError("hash_id must be bytes or UTF-8 string")
             if not isinstance(hash_id, bytes):
