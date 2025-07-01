@@ -275,43 +275,43 @@ class croniter:
 
     def __init__(
         self,
-        expr_format,
-        start_time=None,
-        ret_type=float,
-        day_or=True,
-        max_years_between_matches=None,
-        is_prev=False,
-        hash_id=None,
-        implement_cron_bug=False,
-        second_at_beginning=None,
-        expand_from_start_time=False,
-    ):
+        expr_format: str,
+        start_time: Optional[Union[datetime.datetime, float]] = None,
+        ret_type: type = float,
+        day_or: bool = True,
+        max_years_between_matches: Optional[int] = None,
+        is_prev: bool = False,
+        hash_id: Optional[Union[bytes, str]] = None,
+        implement_cron_bug: bool = False,
+        second_at_beginning: bool = False,
+        expand_from_start_time: bool = False,
+    ) -> None:
         self._ret_type = ret_type
         self._day_or = day_or
         self._implement_cron_bug = implement_cron_bug
         self.second_at_beginning = bool(second_at_beginning)
         self._expand_from_start_time = expand_from_start_time
 
-        if hash_id:
+        if hash_id is not None:
             if not isinstance(hash_id, (bytes, str)):
                 raise TypeError("hash_id must be bytes or UTF-8 string")
             if not isinstance(hash_id, bytes):
                 hash_id = hash_id.encode("UTF-8")
 
         self._max_years_btw_matches_explicitly_set = max_years_between_matches is not None
-        if not self._max_years_btw_matches_explicitly_set:
+        if max_years_between_matches is None:
             max_years_between_matches = 50
         self._max_years_between_matches = max(int(max_years_between_matches), 1)
 
         if start_time is None:
             start_time = time()
 
-        self.tzinfo = None
+        self.tzinfo: Optional[datetime.tzinfo] = None
 
-        self.start_time = None
-        self.dst_start_time = None
-        self.cur = None
-        self.set_current(start_time, force=False)
+        self.start_time = 0.0
+        self.dst_start_time = 0.0
+        self.cur = 0.0
+        self.set_current(start_time, force=True)
 
         self.expanded, self.nth_weekday_of_month = self.expand(
             expr_format,
@@ -352,7 +352,7 @@ class croniter:
 
     def set_current(
         self, start_time: Optional[Union[datetime.datetime, float]], force: bool = True
-    ) -> Optional[float]:
+    ) -> float:
         if (force or (self.cur is None)) and start_time is not None:
             if isinstance(start_time, datetime.datetime):
                 self.tzinfo = start_time.tzinfo
