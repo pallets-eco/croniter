@@ -4,6 +4,7 @@ Changelog
 6.0.1 (unreleased)
 ------------------
 
+- Fix memory leak by removing `TIMESTAMP_TO_DT_CACHE`.
 - Announce back that croniter is maintained now as part of pallets-eco.
 
 
