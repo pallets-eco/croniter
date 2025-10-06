@@ -1,11 +1,36 @@
 Changelog
 ==============
 
-6.0.1 (unreleased)
+6.1.0rc1 (2025-10-10)
 ------------------
 
-- Fix memory leak by removing `TIMESTAMP_TO_DT_CACHE`.
-- Announce back that croniter is maintained now as part of pallets-eco.
+Features and Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Support for `zoneinfo` timezones. [b4e7295, Benjamin Drung (@bdrung)]
+- Add type hints to `croniter.__init__`, `timestamp_to_datetime`, and property initializations. [b171ea9, 257741e, c4f5e44, Benjamin Drung (@bdrung)]
+- Simplify code for `max_years_between_matches`. [e065efa, Benjamin Drung (@bdrung)]
+- Extend type check for `hash_id` to empty str/bytes. [6fe1d43, Benjamin Drung (@bdrung)]
+- Drop unused `_get_next_nearest` and `_get_prev_nearest`. [d7dab3a, Benjamin Drung (@bdrung)]
+- Reduce line length to 99 and unfold long Python code lines. [ecea402, f38d5f4, Benjamin Drung (@bdrung)]
+
+Bugfixes
+~~~~~~~~
+- Fix memory leak by removing `TIMESTAMP_TO_DT_CACHE` global dict cache. [1a9d3c0, Rafał Safin (@rafsaf)]
+- Fix default value of `second_at_beginning` to a boolean. [dc63ed2, Benjamin Drung (@bdrung)]
+- Fix always missing the timestamp to datetime cache. [18eb299, Benjamin Drung (@bdrung)]
+- Fix skipping first of March. [de21a9d, Benjamin Drung (@bdrung)]
+- Fix DST handling by rewriting the DST logic. [f48387b, Benjamin Drung (@bdrung)]
+- Fix all flake8 complaints. [08c1f83, Benjamin Drung (@bdrung)]
+
+Testing and Documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+- Test: fix date in DST test. [871e391, Benjamin Drung (@bdrung)]
+- Test: document time jumps in DST test cases. [2d72258, Benjamin Drung (@bdrung)]
+- Test: use isoformat() to compare dates with timezone information. [1dd3562, Benjamin Drung (@bdrung)]
+
+Other
+~~~~~
+- Announce back that croniter is maintained now as part of pallets-eco. [Jarek Potiuk (@jarekpotiuk)]
 
 
 6.0.0 (2024-12-17)
