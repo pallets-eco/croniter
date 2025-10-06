@@ -1,7 +1,0 @@
-include *.txt *.cfg *.rst *.ini LICENSE
-
-recursive-include docs *
-recursive-include requirements *
-recursive-include src *
-
-global-exclude *pyc

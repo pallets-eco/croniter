@@ -8,7 +8,7 @@ env:
   DOCKER_BUILDKIT: "1"
   COMPOSE_DOCKER_CLI_BUILD: "1"
   BUILDKIT_PROGRESS: "plain"
-  RELEASABLE_REPOS: "^kiorky/"
+  RELEASABLE_REPOS: "^pallets-eco/croniter"
   RELEASABLE_BRANCHES: "^(refs/heads/)?(master|main|new-packaging)$"
 jobs:
   docker-build:
@@ -47,5 +47,5 @@ jobs:
     - name: Release
       run: |
            if [ "x${{steps.v.outputs.releasable}}" = "xtrue" ];then
-             set -ex && docker push corpusops/croniter:${{matrix.FLAVOR}}
+             set -ex && docker push pallets-eco/croniter:${{matrix.FLAVOR}}
            fi
