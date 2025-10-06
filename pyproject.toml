@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "croniter"
-version = "6.0.1rc1"
+version = "6.1.0rc1"
 description = "croniter provides iteration for datetime object with cron like format"
 readme = "README.rst"
 license = { file = "LICENSE" }
