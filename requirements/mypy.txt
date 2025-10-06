@@ -1,3 +1,0 @@
-mypy
-types-python-dateutil
-types-pytz

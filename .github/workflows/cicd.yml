@@ -1,6 +1,8 @@
 name: CI/CD
 on:
   push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
   schedule: [{cron: '1 0 * * 6'}]
@@ -8,8 +10,9 @@ env:
   DOCKER_BUILDKIT: "1"
   COMPOSE_DOCKER_CLI_BUILD: "1"
   BUILDKIT_PROGRESS: "plain"
-  RELEASABLE_REPOS: "^kiorky/"
+  RELEASABLE_REPOS: "^pallets-eco/croniter"
   RELEASABLE_BRANCHES: "^(refs/heads/)?(master|main|new-packaging)$"
+  FORCE_COLOR: "true"
 jobs:
   test-code-QA:
     runs-on: ubuntu-latest
@@ -23,14 +26,19 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .tox
-        key: ${{ runner.os }}-${{ matrix.python }}-toxQA
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with: {python-version: "${{ matrix.python-version }}", cache: pip, cache-dependency-path: 'requirements/*.txt'}
-    - name: install tests dependencies
-      run: pip install -r requirements/test.txt -r requirements/lint.txt -r requirements/mypy.txt -r requirements/tox.txt -r requirements/format.txt
+        key: test-code-QA-${{ runner.os }}-${{ matrix.python }}-toxQA-${{ hashFiles('**/pyproject.toml') }}
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: test-code-QA-${{ runner.os }}-${{ matrix.python }}-uvQA-${{ hashFiles('**/pyproject.toml') }}
+    - name: Install uv and tox
+      shell: sh
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        uv tool install tox
     - name: formatters check
-      run: tox --current-env -e lint,mypy,fmt
+      run: tox -e lint,mypy,fmt
 
   test-py3:
     runs-on: ubuntu-latest
@@ -44,26 +52,26 @@ jobs:
       uses: actions/cache@v4
       with:
         path: .tox
-        key: ${{ runner.os }}-${{ matrix.python }}-tox
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with: {python-version: "${{ matrix.python-version }}", cache: pip, cache-dependency-path: 'requirements/*.txt'}
-    - name: install tests dependencies
-      run: pip install -r requirements/test.txt -r requirements/tox.txt
+        key: test-py3-${{ runner.os }}-${{ matrix.python }}-tox-${{ hashFiles('**/pyproject.toml') }}
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: test-py3-${{ runner.os }}-${{ matrix.python }}-uvQA-${{ hashFiles('**/pyproject.toml') }}
+    - name: Install uv and tox
+      shell: sh
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        uv tool install tox
     - name: run tests with coverage
-      run: tox --current-env -e cov
+      run: tox -e cov
 
   test-32bits:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
-    - name: Cache tox environments
-      uses: actions/cache@v4
-      with:
-        path: .dockertox
-        key: ${{ runner.os }}-${{ matrix.python }}-dockertox
     - name: Test with pytest
       run: |
-         docker compose build --build-arg BASE=corpusops/croniter:32bits
-         docker compose run --rm app tox --current-env -e test
-      env: {COMPOSE_FILE: "docker-compose.yml:docker-compose-32bits.yml"}
+         docker compose run --build --rm --env FORCE_COLOR=true --env UV_LINK_MODE=copy app tox -e test
+      env:
+        COMPOSE_FILE: "docker-compose.yml:docker-compose-build.yml:docker-compose-32bits.yml"

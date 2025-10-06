@@ -1,10 +1,9 @@
 services:
   app:
-    image: "${CRONITER_IMAGE:-corpusops/croniter:latest}"
+    image: "${CRONITER_IMAGE:-pallets-eco/croniter:latest}"
     volumes:
     - ./docker-entry.sh:/app/docker-entry.sh
     - ./.dockertox:/app/.tox
-    - ./setup.cfg:/app/setup.cfg
     - ./pyproject.toml:/app/pyproject.toml
     - ./src:/app/src
     - ./tox.ini:/app/tox.ini

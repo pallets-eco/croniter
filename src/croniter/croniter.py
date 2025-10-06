@@ -61,16 +61,29 @@ except OverflowError:
 UTC_DT = datetime.timezone.utc
 EPOCH = datetime.datetime.fromtimestamp(0, UTC_DT)
 
-# fmt: off
 M_ALPHAS: dict[str, Union[int, str]] = {
-    "jan": 1, "feb": 2,  "mar": 3,  "apr": 4,  # noqa: E241
-    "may": 5, "jun": 6,  "jul": 7,  "aug": 8,  # noqa: E241
-    "sep": 9, "oct": 10, "nov": 11, "dec": 12,
+    "jan": 1,
+    "feb": 2,
+    "mar": 3,
+    "apr": 4,  # noqa: E241
+    "may": 5,
+    "jun": 6,
+    "jul": 7,
+    "aug": 8,  # noqa: E241
+    "sep": 9,
+    "oct": 10,
+    "nov": 11,
+    "dec": 12,
 }
 DOW_ALPHAS: dict[str, Union[int, str]] = {
-    "sun": 0, "mon": 1, "tue": 2, "wed": 3, "thu": 4, "fri": 5, "sat": 6
+    "sun": 0,
+    "mon": 1,
+    "tue": 2,
+    "wed": 3,
+    "thu": 4,
+    "fri": 5,
+    "sat": 6,
 }
-# fmt: on
 
 MINUTE_FIELD = 0
 HOUR_FIELD = 1
