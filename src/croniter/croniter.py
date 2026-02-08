@@ -134,7 +134,7 @@ SECOND_CRON_LEN = len(SECOND_FIELDS)
 YEAR_CRON_LEN = len(YEAR_FIELDS)
 # retrocompat
 VALID_LEN_EXPRESSION = {a for a in CRON_FIELDS if isinstance(a, int)}
-EXPRESSIONS: dict[tuple[str, Optional[bytes], bool], list[str]] = {}
+
 MARKER = object()
 
 
@@ -325,14 +325,13 @@ class croniter:
         self.cur = 0.0
         self.set_current(start_time, force=True)
 
-        self.expanded, self.nth_weekday_of_month = self.expand(
+        self.expanded, self.nth_weekday_of_month, self.expressions = self._expand(
             expr_format,
             hash_id=hash_id,
             from_timestamp=self.dst_start_time if self._expand_from_start_time else None,
             second_at_beginning=second_at_beginning,
         )
         self.fields = CRON_FIELDS[len(self.expanded)]
-        self.expressions = EXPRESSIONS[(expr_format, hash_id, second_at_beginning)]
         self._is_prev = is_prev
 
     @classmethod
@@ -1081,8 +1080,7 @@ class croniter:
                     f"    dow={dow_expanded_set} vs nth={nth_weekday_of_month}"
                 )
 
-        EXPRESSIONS[(expr_format, hash_id, second_at_beginning)] = expressions
-        return expanded, nth_weekday_of_month
+        return expanded, nth_weekday_of_month, expressions
 
     @classmethod
     def expand(
@@ -1131,12 +1129,13 @@ class croniter:
         ([[0], [0], ['*'], ['*'], ['*'], [0, 15, 30, 45]], {})
         """
         try:
-            return cls._expand(
+            expanded, nth_weekday_of_month, _expressions = cls._expand(
                 expr_format,
                 hash_id=hash_id,
                 second_at_beginning=second_at_beginning,
                 from_timestamp=from_timestamp,
             )
+            return expanded, nth_weekday_of_month
         except (ValueError,) as exc:
             if isinstance(exc, CroniterError):
                 raise
