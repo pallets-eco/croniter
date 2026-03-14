@@ -1,12 +1,23 @@
 Changelog
 ==============
 
-6.1.1 (unreleased)
+6.2.0 (2026-03-14)
 ------------------
+
+Features and Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Add support for ``W`` (nearest weekday) in the day-of-month field. [c79d88a]
+- Add ``precision_in_seconds`` parameter to ``match()`` and ``match_range()`` to allow overriding the default matching precision. [7415d1e, #58]
+- Add ``strict`` parameter to ``is_valid()`` and ``expand()`` for cross-field validation of impossible day/month combinations. [0352d48, #199]
 
 Bugfixes
 ~~~~~~~~
-- Fix memory leak by removing `EXPRESSIONS` global dict cache. [1883e15, @Souls-R]
+- Fix memory leak by removing ``EXPRESSIONS`` global dict cache. [6ebfe56, @Souls-R]
+
+Testing and Documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+- Document ``day_or`` and ``implement_cron_bug`` parameters for day-of-month/day-of-week interaction. [289bf73, #75]
+- Document ``precision_in_seconds`` parameter and default precision behavior for ``match()``. [7415d1e, #58]
 
 
 6.1.0 (2026-03-14)
