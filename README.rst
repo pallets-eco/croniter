@@ -105,6 +105,44 @@ You can validate your crons using ``is_valid`` class method. (>= 0.3.18)::
     >>> croniter.is_valid('0 0 1 * *')  # True
     >>> croniter.is_valid('0 wrong_value 1 * *')  # False
 
+Strict validation
+-----------------
+
+By default, ``is_valid`` and ``expand`` only check that each field is within its own range
+(e.g. day 1-31, month 1-12). They do not cross-validate fields, so expressions like
+``0 0 31 2 *`` (February 31st) are considered valid even though they can never match a real date.
+
+Use ``strict=True`` to enable cross-field validation that rejects impossible day/month
+combinations::
+
+    >>> croniter.is_valid('0 0 31 2 *')  # True (default: syntax only)
+    >>> croniter.is_valid('0 0 31 2 *', strict=True)  # False (Feb has at most 29 days)
+    >>> croniter.is_valid('0 0 31 4 *', strict=True)  # False (Apr has 30 days)
+    >>> croniter.is_valid('0 0 30 1,2 *', strict=True)  # True (day 30 is valid in Jan)
+
+When ``strict=True`` and the expression does not include a year field, February is assumed to
+have 29 days (since leap years exist)::
+
+    >>> croniter.is_valid('0 0 29 2 *', strict=True)  # True (leap years exist)
+
+If the expression includes a year field (7-field format), leap year status is determined from
+the specified years::
+
+    >>> croniter.is_valid('0 0 29 2 * 0 2024', strict=True)  # True (2024 is a leap year)
+    >>> croniter.is_valid('0 0 29 2 * 0 2023', strict=True)  # False (2023 is not)
+    >>> croniter.is_valid('0 0 29 2 * 0 2023-2025', strict=True)  # True (2024 in range is a leap year)
+
+For 5- or 6-field expressions, you can pass ``strict_year`` to provide the year(s) for
+leap year checking without adding a year field to the expression::
+
+    >>> croniter.is_valid('0 0 29 2 *', strict=True, strict_year=2024)  # True (leap year)
+    >>> croniter.is_valid('0 0 29 2 *', strict=True, strict_year=2023)  # False (not a leap year)
+    >>> croniter.is_valid('0 0 29 2 *', strict=True, strict_year=[2023, 2024])  # True (2024 is a leap year)
+
+The ``strict`` and ``strict_year`` parameters are also available on ``expand()``::
+
+    >>> croniter.expand('0 0 31 2 *', strict=True)  # raises CroniterBadCronError
+
 About DST
 =========
 Be sure to init your croniter instance with a TZ aware datetime for this to work!
