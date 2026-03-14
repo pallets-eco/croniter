@@ -1,7 +1,15 @@
 Changelog
 ==============
 
-6.1.0rc1 (2025-10-10)
+6.1.1 (unreleased)
+------------------
+
+Bugfixes
+~~~~~~~~
+- Fix memory leak by removing `EXPRESSIONS` global dict cache. [1883e15, @Souls-R]
+
+
+6.1.0 (2026-03-14)
 ------------------
 
 Features and Improvements
