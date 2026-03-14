@@ -143,6 +143,34 @@ The ``strict`` and ``strict_year`` parameters are also available on ``expand()``
 
     >>> croniter.expand('0 0 31 2 *', strict=True)  # raises CroniterBadCronError
 
+Nearest weekday (W)
+===================
+
+The ``W`` character is supported in the day-of-month field to specify the nearest weekday
+(Monday-Friday) to the given day. Both ``nW`` and ``Wn`` formats are accepted::
+
+    >>> base = datetime(2024, 6, 1)
+    >>> itr = croniter('0 9 15W * *', base)
+    >>> itr.get_next(datetime)   # Jun 15 2024 is Saturday -> fires on Friday 14th
+    datetime.datetime(2024, 6, 14, 9, 0)
+
+Rules:
+
+- If the specified day falls on a weekday, the trigger fires on that day.
+- If the specified day falls on Saturday, the trigger fires on the preceding Friday.
+- If the specified day falls on Sunday, the trigger fires on the following Monday.
+- The nearest weekday never crosses month boundaries. If the 1st is a Saturday, the trigger
+  fires on Monday the 3rd. If the last day of the month is a Sunday, the trigger fires on the
+  preceding Friday.
+- ``W`` can only be used with a single day value, not in a range or list.
+
+Examples::
+
+    >>> croniter('0 9 1W * *', datetime(2024, 5, 31)).get_next(datetime)   # Jun 1 is Sat -> Mon 3rd
+    datetime.datetime(2024, 6, 3, 9, 0)
+    >>> croniter('0 9 W15 * *', datetime(2024, 1, 1)).get_next(datetime)   # Wn format also works
+    datetime.datetime(2024, 1, 15, 9, 0)
+
 About DST
 =========
 Be sure to init your croniter instance with a TZ aware datetime for this to work!
