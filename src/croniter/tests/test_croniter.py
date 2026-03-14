@@ -1146,6 +1146,109 @@ class CroniterTest(base.TestCase):
         # strict_year without strict has no effect (backward compatible)
         self.assertTrue(croniter.is_valid("0 0 31 2 *", strict_year=2024))
 
+    def test_nearest_weekday_basic(self):
+        # 15W: nearest weekday to the 15th
+        # Jan 2024: 15th is Monday -> fires on 15th
+        base = datetime(2024, 1, 1)
+        itr = croniter("0 9 15W * *", base)
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 1, 15, 9, 0))
+
+        # Feb 2024: 15th is Thursday -> fires on 15th
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 2, 15, 9, 0))
+
+        # Mar 2024: 15th is Friday -> fires on 15th
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 3, 15, 9, 0))
+
+    def test_nearest_weekday_saturday(self):
+        # Jun 2024: 15th is Saturday -> fires on Friday 14th
+        base = datetime(2024, 6, 1)
+        itr = croniter("0 9 15W * *", base)
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 6, 14, 9, 0))
+
+    def test_nearest_weekday_sunday(self):
+        # Sep 2024: 15th is Sunday -> fires on Monday 16th
+        base = datetime(2024, 9, 1)
+        itr = croniter("0 9 15W * *", base)
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 9, 16, 9, 0))
+
+    def test_nearest_weekday_first_saturday(self):
+        # 1W: 1st is Saturday -> fires on Monday 3rd (no backward month crossing)
+        # Jun 2024: 1st is Saturday
+        base = datetime(2024, 5, 31)
+        itr = croniter("0 9 1W * *", base)
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 6, 3, 9, 0))
+
+    def test_nearest_weekday_last_day_sunday(self):
+        # 31W in Mar 2025: 31st is Monday -> fires on 31st
+        base = datetime(2025, 3, 1)
+        itr = croniter("0 9 31W * *", base)
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2025, 3, 31, 9, 0))
+
+    def test_nearest_weekday_end_of_month_boundary(self):
+        # 30W in Nov 2024: 30th is Saturday -> fires on Friday 29th
+        base = datetime(2024, 11, 1)
+        itr = croniter("0 9 30W * *", base)
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 11, 29, 9, 0))
+
+        # 31W in a month with only 30 days (Nov): clamps to 30th (Sat) -> Fri 29th
+        base = datetime(2024, 11, 1)
+        itr = croniter("0 9 31W * *", base)
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 11, 29, 9, 0))
+
+    def test_nearest_weekday_wn_format(self):
+        # W15 format (prefix) should work the same as 15W
+        base = datetime(2024, 1, 1)
+        itr = croniter("0 9 W15 * *", base)
+        n = itr.get_next(datetime)
+        self.assertEqual(n, datetime(2024, 1, 15, 9, 0))
+
+    def test_nearest_weekday_get_prev(self):
+        # Test get_prev with W
+        base = datetime(2024, 6, 30)
+        itr = croniter("0 9 15W * *", base)
+        # Jun 2024: 15th is Saturday -> nearest weekday is Friday 14th
+        n = itr.get_prev(datetime)
+        self.assertEqual(n, datetime(2024, 6, 14, 9, 0))
+
+    def test_nearest_weekday_is_valid(self):
+        self.assertTrue(croniter.is_valid("0 9 15W * *"))
+        self.assertTrue(croniter.is_valid("0 9 W15 * *"))
+        self.assertTrue(croniter.is_valid("0 9 1W * *"))
+        self.assertTrue(croniter.is_valid("0 9 31W * *"))
+        # W cannot be used with list or range
+        self.assertFalse(croniter.is_valid("0 9 15W,16 * *"))
+        self.assertFalse(croniter.is_valid("0 9 1,15W * *"))
+        # Out of range
+        self.assertFalse(croniter.is_valid("0 9 0W * *"))
+        self.assertFalse(croniter.is_valid("0 9 32W * *"))
+
+    def test_nearest_weekday_iteration(self):
+        # Test iteration across multiple months
+        base = datetime(2023, 12, 31)
+        itr = croniter("0 0 1W * *", base)
+        results = [itr.get_next(datetime) for _ in range(6)]
+        # Jan 2024: 1st is Mon -> 1st
+        self.assertEqual(results[0], datetime(2024, 1, 1, 0, 0))
+        # Feb 2024: 1st is Thu -> 1st
+        self.assertEqual(results[1], datetime(2024, 2, 1, 0, 0))
+        # Mar 2024: 1st is Fri -> 1st
+        self.assertEqual(results[2], datetime(2024, 3, 1, 0, 0))
+        # Apr 2024: 1st is Mon -> 1st
+        self.assertEqual(results[3], datetime(2024, 4, 1, 0, 0))
+        # May 2024: 1st is Wed -> 1st
+        self.assertEqual(results[4], datetime(2024, 5, 1, 0, 0))
+        # Jun 2024: 1st is Sat -> Mon 3rd
+        self.assertEqual(results[5], datetime(2024, 6, 3, 0, 0))
+
     def test_exactly_the_same_minute(self):
         base = datetime(2018, 3, 5, 12, 30, 50)
         itr = croniter("30 7,12,17 * * *", base)

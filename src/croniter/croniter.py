@@ -116,6 +116,7 @@ special_dow_re = re.compile(
     rf"^(?P<pre>((?P<he>(({WEEKDAYS})(-({WEEKDAYS}))?)"
     rf"|(({MONTHS})(-({MONTHS}))?)|\w+)#)|l)(?P<last>\d+)$"
 )
+nearest_weekday_re = re.compile(r"^(?:(\d+)w|w(\d+))$")
 re_star = re.compile("[*]")
 hash_expression_re = re.compile(
     r"^(?P<hash_type>h|r)(\((?P<range_begin>\d+)-(?P<range_end>\d+)\))?(\/(?P<divisor>\d+))?$"
@@ -325,7 +326,7 @@ class croniter:
         self.cur = 0.0
         self.set_current(start_time, force=True)
 
-        self.expanded, self.nth_weekday_of_month, self.expressions = self._expand(
+        self.expanded, self.nth_weekday_of_month, self.expressions, self.nearest_weekday = self._expand(
             expr_format,
             hash_id=hash_id,
             from_timestamp=self.dst_start_time if self._expand_from_start_time else None,
@@ -647,6 +648,32 @@ class croniter:
                 return True, d
             return False, d
 
+        def proc_nearest_weekday(d):
+            """Process W (nearest weekday) day-of-month entries."""
+            candidates = []
+            for w_day in self.nearest_weekday:
+                candidate = self._get_nearest_weekday(d.year, d.month, w_day)
+                if (is_prev and candidate <= d.day) or (not is_prev and d.day <= candidate):
+                    candidates.append(candidate)
+
+            if not candidates:
+                if is_prev:
+                    d += relativedelta(days=-d.day, hour=23, minute=59, second=59)
+                else:
+                    days = _last_day_of_month(year, month)
+                    d += relativedelta(days=(days - d.day + 1), hour=0, minute=0, second=0)
+                return True, d
+
+            candidates.sort()
+            diff_day = (candidates[-1] if is_prev else candidates[0]) - d.day
+            if diff_day != 0:
+                if is_prev:
+                    d += relativedelta(days=diff_day, hour=23, minute=59, second=59)
+                else:
+                    d += relativedelta(days=diff_day, hour=0, minute=0, second=0)
+                return True, d
+            return False, d
+
         def proc_hour(d):
             try:
                 expanded[HOUR_FIELD].index("*")
@@ -689,7 +716,7 @@ class croniter:
         procs = [
             proc_year,
             proc_month,
-            proc_day_of_month,
+            (proc_nearest_weekday if self.nearest_weekday else proc_day_of_month),
             (proc_day_of_week_nth if nth_weekday_of_month else proc_day_of_week),
             proc_hour,
             proc_minute,
@@ -831,6 +858,33 @@ class croniter:
             c.pop(0)
         return tuple(i[0] for i in c)
 
+    @staticmethod
+    def _get_nearest_weekday(year, month, day):
+        """Get the nearest weekday (Mon-Fri) to the given day in the given month.
+
+        Rules:
+        - If the day is a weekday, return it.
+        - If Saturday, return Friday (day-1), unless that crosses into previous month,
+          then return Monday (day+2).
+        - If Sunday, return Monday (day+1), unless that crosses into next month,
+          then return Friday (day-2).
+        """
+        last_day = _last_day_of_month(year, month)
+        day = min(day, last_day)
+        weekday = calendar.weekday(year, month, day)  # 0=Mon, 6=Sun
+        if weekday < 5:  # Mon-Fri
+            return day
+        if weekday == 5:  # Saturday
+            if day > 1:
+                return day - 1  # Friday
+            else:
+                return day + 2  # Monday (1st is Sat, so 3rd is Mon)
+        # Sunday
+        if day < last_day:
+            return day + 1  # Monday
+        else:
+            return day - 2  # Friday (last day is Sun, go back to Fri)
+
     @classmethod
     def value_alias(cls, val, field_index, len_expressions=UNIX_CRON_LEN):
         if isinstance(len_expressions, (list, dict, tuple, set)):
@@ -887,6 +941,7 @@ class croniter:
 
         expanded = []
         nth_weekday_of_month = {}
+        nearest_weekday = set()
 
         for field_index, expr in enumerate(expressions):
             for expanderid, expander in EXPANDERS.items():
@@ -934,6 +989,26 @@ class croniter:
                         elif last:
                             e = last
                             nth = g["pre"]  # 'l'
+
+                if field_index == DAY_FIELD:
+                    # Handle W (nearest weekday) in day-of-month: 15w, w15
+                    w_match = nearest_weekday_re.match(str(e))
+                    if w_match:
+                        w_day = int(w_match.group(1) or w_match.group(2))
+                        if w_day < 1 or w_day > 31:
+                            raise CroniterBadCronError(
+                                f"[{expr_format}] is not acceptable,"
+                                f" nearest weekday day value '{w_day}' out of range"
+                            )
+                        if len(e_list) > 0 or len(res) > 0:
+                            raise CroniterBadCronError(
+                                f"[{expr_format}] is not acceptable."
+                                f" 'W' can only be used with a single day value,"
+                                f" not in a list or range"
+                            )
+                        nearest_weekday.add(w_day)
+                        res.append(w_day)
+                        continue
 
                 # Before matching step_search_re, normalize "*" to "{min}-{max}".
                 # Example: in the minute field, "*/5" normalizes to "0-59/5"
@@ -1118,7 +1193,7 @@ class croniter:
                             f" can never occur in month(s) {int_months}"
                         )
 
-        return expanded, nth_weekday_of_month, expressions
+        return expanded, nth_weekday_of_month, expressions, nearest_weekday
 
     @classmethod
     def expand(
@@ -1169,7 +1244,7 @@ class croniter:
         ([[0], [0], ['*'], ['*'], ['*'], [0, 15, 30, 45]], {})
         """
         try:
-            expanded, nth_weekday_of_month, _expressions = cls._expand(
+            expanded, nth_weekday_of_month, _expressions, _nearest_weekday = cls._expand(
                 expr_format,
                 hash_id=hash_id,
                 second_at_beginning=second_at_beginning,
