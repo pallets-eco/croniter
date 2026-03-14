@@ -24,6 +24,7 @@ Features and Improvements
 Bugfixes
 ~~~~~~~~
 - Fix memory leak by removing `TIMESTAMP_TO_DT_CACHE` global dict cache. [1a9d3c0, Rafał Safin (@rafsaf)]
+- Fix memory leak by removing `EXPRESSIONS` global dict cache. [1883e15, @Souls-R]
 - Fix default value of `second_at_beginning` to a boolean. [dc63ed2, Benjamin Drung (@bdrung)]
 - Fix always missing the timestamp to datetime cache. [18eb299, Benjamin Drung (@bdrung)]
 - Fix skipping first of March. [de21a9d, Benjamin Drung (@bdrung)]
