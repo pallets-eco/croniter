@@ -849,8 +849,11 @@ class croniter:
             val = cls.LOWMAP[field_index][val]
         return val
 
+    # Maximum days in each month (non-leap year for Feb)
+    DAYS_IN_MONTH = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+
     @classmethod
-    def _expand(cls, expr_format, hash_id=None, second_at_beginning=False, from_timestamp=None):
+    def _expand(cls, expr_format, hash_id=None, second_at_beginning=False, from_timestamp=None, strict=False, strict_year=None):
         # Split the expression in components, and normalize L -> l, MON -> mon,
         # etc. Keep expr_format untouched so we can use it in the exception
         # messages.
@@ -1080,6 +1083,41 @@ class croniter:
                     f"    dow={dow_expanded_set} vs nth={nth_weekday_of_month}"
                 )
 
+        if strict:
+            # Cross-validate day-of-month against month (and optionally year)
+            # to reject impossible combinations like "0 0 31 2 *" (Feb 31st).
+            days = expanded[DAY_FIELD]
+            months = expanded[MONTH_FIELD]
+            if days != ["*"] and days != ["l"] and months != ["*"]:
+                int_days = [d for d in days if isinstance(d, int)]
+                int_months = [m for m in months if isinstance(m, int)]
+                if int_days and int_months:
+                    # Determine max days per month, accounting for leap years
+                    days_in_month = dict(cls.DAYS_IN_MONTH)
+                    if 2 in int_months:
+                        has_leap_year = True  # assume possible by default
+                        if strict_year is not None:
+                            # Year explicitly provided as parameter
+                            if isinstance(strict_year, int):
+                                has_leap_year = calendar.isleap(strict_year)
+                            else:
+                                has_leap_year = any(calendar.isleap(y) for y in strict_year)
+                        elif len(expanded) > YEAR_FIELD:
+                            years = expanded[YEAR_FIELD]
+                            if years != ["*"]:
+                                int_years = [y for y in years if isinstance(y, int)]
+                                if int_years:
+                                    has_leap_year = any(calendar.isleap(y) for y in int_years)
+                        if has_leap_year:
+                            days_in_month[2] = 29
+                    min_day = min(int_days)
+                    max_possible = max(days_in_month[m] for m in int_months)
+                    if min_day > max_possible:
+                        raise CroniterBadCronError(
+                            f"[{expr_format}] is not acceptable. Day(s) {int_days}"
+                            f" can never occur in month(s) {int_months}"
+                        )
+
         return expanded, nth_weekday_of_month, expressions
 
     @classmethod
@@ -1089,6 +1127,8 @@ class croniter:
         hash_id: Optional[Union[bytes, str]] = None,
         second_at_beginning: bool = False,
         from_timestamp: Optional[float] = None,
+        strict: bool = False,
+        strict_year: Optional[Union[int, list[int]]] = None,
     ) -> tuple[list[ExpandedExpression], dict[int, set[int]]]:
         """
         Expand a cron expression format into a noramlized format of
@@ -1134,6 +1174,8 @@ class croniter:
                 hash_id=hash_id,
                 second_at_beginning=second_at_beginning,
                 from_timestamp=from_timestamp,
+                strict=strict,
+                strict_year=strict_year,
             )
             return expanded, nth_weekday_of_month
         except (ValueError,) as exc:
@@ -1159,14 +1201,14 @@ class croniter:
         raise ValueError("Can't get current date number for index larger than 4")
 
     @classmethod
-    def is_valid(cls, expression, hash_id=None, encoding="UTF-8", second_at_beginning=False):
+    def is_valid(cls, expression, hash_id=None, encoding="UTF-8", second_at_beginning=False, strict=False, strict_year=None):
         if hash_id:
             if not isinstance(hash_id, (bytes, str)):
                 raise TypeError("hash_id must be bytes or UTF-8 string")
             if not isinstance(hash_id, bytes):
                 hash_id = hash_id.encode(encoding)
         try:
-            cls.expand(expression, hash_id=hash_id, second_at_beginning=second_at_beginning)
+            cls.expand(expression, hash_id=hash_id, second_at_beginning=second_at_beginning, strict=strict, strict_year=strict_year)
         except CroniterError:
             return False
         return True

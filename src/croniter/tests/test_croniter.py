@@ -1077,6 +1077,75 @@ class CroniterTest(base.TestCase):
         self.assertFalse(croniter.is_valid("* * * janu-jun *"))
         self.assertTrue(croniter.is_valid("H 0 * * *", hash_id="abc"))
 
+    def test_is_valid_strict(self):
+        # Feb 31 - never exists
+        self.assertTrue(croniter.is_valid("0 0 31 2 *"))
+        self.assertFalse(croniter.is_valid("0 0 31 2 *", strict=True))
+        # Feb 30 - never exists
+        self.assertFalse(croniter.is_valid("0 0 30 2 *", strict=True))
+        # Apr 31 - never exists
+        self.assertFalse(croniter.is_valid("0 0 31 4 *", strict=True))
+        # Jun 31 - never exists
+        self.assertFalse(croniter.is_valid("0 0 31 6 *", strict=True))
+        # Feb 29 without year - valid (leap years exist)
+        self.assertTrue(croniter.is_valid("0 0 29 2 *", strict=True))
+        # Jan 31 - valid
+        self.assertTrue(croniter.is_valid("0 0 31 1 *", strict=True))
+        # Day 31 in months 1,2 - day 31 is reachable in Jan
+        self.assertTrue(croniter.is_valid("0 0 31 1,2 *", strict=True))
+        # Day 30 in months 2,4 - day 30 is reachable in Apr
+        self.assertTrue(croniter.is_valid("0 0 30 2,4 *", strict=True))
+        # Wildcard month - always valid
+        self.assertTrue(croniter.is_valid("0 0 31 * *", strict=True))
+        # Wildcard day - always valid
+        self.assertTrue(croniter.is_valid("0 0 * 2 *", strict=True))
+        # Last day of month - always valid
+        self.assertTrue(croniter.is_valid("0 0 l * *", strict=True))
+        # Normal expressions remain valid
+        self.assertTrue(croniter.is_valid("0 * * * *", strict=True))
+        self.assertTrue(croniter.is_valid("*/5 * * * *", strict=True))
+        # expand() also supports strict
+        with self.assertRaises(CroniterBadCronError):
+            croniter.expand("0 0 31 2 *", strict=True)
+
+    def test_is_valid_strict_with_year(self):
+        # Feb 29 in a leap year - valid
+        self.assertTrue(croniter.is_valid("0 0 29 2 * 0 2024", strict=True))
+        self.assertTrue(croniter.is_valid("0 0 29 2 * 0 2028", strict=True))
+        # Feb 29 in a non-leap year - invalid
+        self.assertFalse(croniter.is_valid("0 0 29 2 * 0 2023", strict=True))
+        self.assertFalse(croniter.is_valid("0 0 29 2 * 0 2025", strict=True))
+        # Feb 29 with mixed years (some leap, some not) - valid
+        self.assertTrue(croniter.is_valid("0 0 29 2 * 0 2023,2024", strict=True))
+        # Feb 29 with year range including a leap year - valid
+        self.assertTrue(croniter.is_valid("0 0 29 2 * 0 2023-2025", strict=True))
+        # Feb 29 with year range of all non-leap years - invalid
+        self.assertFalse(croniter.is_valid("0 0 29 2 * 0 2025-2027", strict=True))
+        # Feb 31 with any year - always invalid
+        self.assertFalse(croniter.is_valid("0 0 31 2 * 0 2024", strict=True))
+        # Feb 30 with leap year - still invalid (leap year only adds day 29)
+        self.assertFalse(croniter.is_valid("0 0 30 2 * 0 2024", strict=True))
+        # Wildcard year - Feb 29 valid (leap years exist)
+        self.assertTrue(croniter.is_valid("0 0 29 2 * 0 *", strict=True))
+
+    def test_is_valid_strict_year_parameter(self):
+        # 5-field expression with strict_year parameter
+        # Feb 29 with leap year param - valid
+        self.assertTrue(croniter.is_valid("0 0 29 2 *", strict=True, strict_year=2024))
+        self.assertTrue(croniter.is_valid("0 0 29 2 *", strict=True, strict_year=2000))
+        # Feb 29 with non-leap year param - invalid
+        self.assertFalse(croniter.is_valid("0 0 29 2 *", strict=True, strict_year=2023))
+        self.assertFalse(croniter.is_valid("0 0 29 2 *", strict=True, strict_year=1900))
+        # Feb 31 - invalid regardless of year
+        self.assertFalse(croniter.is_valid("0 0 31 2 *", strict=True, strict_year=2024))
+        # strict_year as list of years
+        self.assertTrue(croniter.is_valid("0 0 29 2 *", strict=True, strict_year=[2023, 2024]))
+        self.assertFalse(croniter.is_valid("0 0 29 2 *", strict=True, strict_year=[2023, 2025]))
+        # Non-Feb months ignore strict_year
+        self.assertTrue(croniter.is_valid("0 0 31 1 *", strict=True, strict_year=2023))
+        # strict_year without strict has no effect (backward compatible)
+        self.assertTrue(croniter.is_valid("0 0 31 2 *", strict_year=2024))
+
     def test_exactly_the_same_minute(self):
         base = datetime(2018, 3, 5, 12, 30, 50)
         itr = croniter("30 7,12,17 * * *", base)
