@@ -1400,6 +1400,51 @@ class CroniterTest(base.TestCase):
             croniter.match("0 0 10 * fri", datetime(2020, 6, 12, 0, 0, 0, 0), day_or=False)
         )
 
+    def test_match_precision(self):
+        # Default precision for 5-field cron is 60 seconds
+        # so 59 seconds off still matches
+        self.assertTrue(croniter.match("0 0 * * *", datetime(2019, 1, 14, 0, 0, 59, 0)))
+        # but 61 seconds off does not
+        self.assertFalse(croniter.match("0 0 * * *", datetime(2019, 1, 14, 0, 1, 1, 0)))
+
+        # With explicit precision_in_seconds=1, only exact second matches
+        self.assertTrue(
+            croniter.match("0 0 * * *", datetime(2019, 1, 14, 0, 0, 0, 0), precision_in_seconds=1)
+        )
+        self.assertFalse(
+            croniter.match("0 0 * * *", datetime(2019, 1, 14, 0, 0, 59, 0), precision_in_seconds=1)
+        )
+
+        # Default precision for 6-field cron is 1 second
+        self.assertTrue(croniter.match("0 0 * * * 0", datetime(2019, 1, 14, 0, 0, 0, 0)))
+        self.assertFalse(croniter.match("0 0 * * * 0", datetime(2019, 1, 14, 0, 0, 1, 0)))
+
+        # With explicit precision_in_seconds=60 on a 6-field cron, 59 seconds off matches
+        self.assertTrue(
+            croniter.match(
+                "0 0 * * * 0", datetime(2019, 1, 14, 0, 0, 59, 0), precision_in_seconds=60
+            )
+        )
+
+    def test_match_range_precision(self):
+        # With precision_in_seconds=1, match_range is strict
+        self.assertFalse(
+            croniter.match_range(
+                "0 0 * * *",
+                datetime(2019, 1, 14, 0, 0, 30, 0),
+                datetime(2019, 1, 14, 0, 0, 40, 0),
+                precision_in_seconds=1,
+            )
+        )
+        # With default precision (60s), same range matches
+        self.assertTrue(
+            croniter.match_range(
+                "0 0 * * *",
+                datetime(2019, 1, 14, 0, 0, 30, 0),
+                datetime(2019, 1, 14, 0, 0, 40, 0),
+            )
+        )
+
     def test_match_handle_bad_cron(self):
         # some cron expression can"t get prev value and should not raise exception
         self.assertFalse(croniter.match("0 0 31 1 1#1", datetime(2020, 1, 31), day_or=False))

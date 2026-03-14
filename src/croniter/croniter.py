@@ -1289,12 +1289,27 @@ class croniter:
         return True
 
     @classmethod
-    def match(cls, cron_expression, testdate, day_or=True, second_at_beginning=False):
-        return cls.match_range(cron_expression, testdate, testdate, day_or, second_at_beginning)
+    def match(
+        cls,
+        cron_expression,
+        testdate,
+        day_or=True,
+        second_at_beginning=False,
+        precision_in_seconds=None,
+    ):
+        return cls.match_range(
+            cron_expression, testdate, testdate, day_or, second_at_beginning, precision_in_seconds
+        )
 
     @classmethod
     def match_range(
-        cls, cron_expression, from_datetime, to_datetime, day_or=True, second_at_beginning=False
+        cls,
+        cron_expression,
+        from_datetime,
+        to_datetime,
+        day_or=True,
+        second_at_beginning=False,
+        precision_in_seconds=None,
     ):
         cron = cls(
             cron_expression,
@@ -1311,7 +1326,8 @@ class croniter:
             tdt = cron.get_prev()
         except CroniterBadDateError:
             return False
-        precision_in_seconds = 1 if len(cron.expanded) > UNIX_CRON_LEN else 60
+        if precision_in_seconds is None:
+            precision_in_seconds = 1 if len(cron.expanded) > UNIX_CRON_LEN else 60
         duration_in_second = (to_datetime - from_datetime).total_seconds() + precision_in_seconds
         return (max(tdp, tdt) - min(tdp, tdt)).total_seconds() < duration_in_second
 

@@ -279,6 +279,19 @@ Test for a match with (>=0.3.32)::
     >>> croniter.match("2 4 1 * wed", datetime(2019, 1, 1, 4, 2, 0, 0), day_or=False) # 04:02 on every 1st day of the month if it is a Wednesday
     False
 
+By default, ``match`` uses a precision of **60 seconds** for standard 5-field cron
+expressions and **1 second** for 6-field expressions (with seconds). This means a
+datetime up to 60 (or 1) seconds after the scheduled time will still match.
+
+You can override this with the ``precision_in_seconds`` parameter::
+
+    >>> # With default precision (60s), 59 seconds past midnight still matches
+    >>> croniter.match("0 0 * * *", datetime(2019, 1, 14, 0, 0, 59, 0))
+    True
+    >>> # With precision=1, only an exact match within 1 second works
+    >>> croniter.match("0 0 * * *", datetime(2019, 1, 14, 0, 0, 59, 0), precision_in_seconds=1)
+    False
+
 Testing if a crontab matches in datetime range
 ==============================================
 Test for a match_range with (>=2.0.3)::
@@ -293,6 +306,8 @@ Test for a match_range with (>=2.0.3)::
     >>> croniter.match_range("2 4 1 * wed", datetime(2019, 1, 1, 3, 2, 0, 0), datetime(2019, 1, 1, 5, 2, 0, 0), day_or=False)
     # 04:02 on every 1st day of the month if it is a Wednesday
     False
+
+The ``precision_in_seconds`` parameter is also available on ``match_range``.
 
 Gaps between date matches
 =========================
