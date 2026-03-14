@@ -171,6 +171,47 @@ Examples::
     >>> croniter('0 9 W15 * *', datetime(2024, 1, 1)).get_next(datetime)   # Wn format also works
     datetime.datetime(2024, 1, 15, 9, 0)
 
+Day-of-month and day-of-week
+============================
+
+When both the day-of-month and day-of-week fields are restricted (not ``*``),
+the default POSIX cron behavior is to match when **either** field matches (OR).
+This is controlled by the ``day_or`` parameter::
+
+    >>> # OR (default): fires on every Wednesday OR on the 1st of the month
+    >>> iter = croniter('2 4 1 * wed', datetime(2010, 1, 25))
+    >>> print(iter.get_next(datetime))   # 2010-01-27 04:02:00 (Wed)
+    >>> print(iter.get_next(datetime))   # 2010-02-01 04:02:00 (1st)
+
+    >>> # AND: fires only on the 1st of the month IF it is a Wednesday
+    >>> iter = croniter('2 4 1 * wed', datetime(2010, 1, 25), day_or=False)
+    >>> print(iter.get_next(datetime))   # 2010-09-01 04:02:00 (Wed AND 1st)
+
+This can be used to express patterns like "the first Tuesday of the month"
+by combining a day range with a weekday::
+
+    >>> # First Tuesday of each month: days 1-7 AND Tuesday
+    >>> iter = croniter('1 1 1-7 * 2', datetime(2024, 7, 12), day_or=False)
+    >>> print(iter.get_next(datetime))   # 2024-08-06 01:01:00
+    >>> print(iter.get_next(datetime))   # 2024-09-03 01:01:00
+    >>> print(iter.get_next(datetime))   # 2024-10-01 01:01:00
+    >>> print(iter.get_next(datetime))   # 2024-11-05 01:01:00
+
+Vixie cron bug compatibility
+----------------------------
+
+Some vixie/ISC cron implementations have a `known bug
+<https://crontab.guru/cron-bug.html>`_ where expressions that start with
+``*`` in the day-of-month or day-of-week field (e.g. ``*/32,1-7``) use AND
+logic instead of OR, even though those fields are technically restricted.
+
+If you need to replicate this behavior (e.g. ``*/32,1-7`` as a hack for days
+1-7), use ``implement_cron_bug=True``::
+
+    >>> iter = croniter('1 1 */32,1-7 * 2', datetime(2024, 7, 12), implement_cron_bug=True)
+    >>> print(iter.get_next(datetime))   # 2024-08-06 01:01:00
+    >>> print(iter.get_next(datetime))   # 2024-09-03 01:01:00
+
 About DST
 =========
 Be sure to init your croniter instance with a TZ aware datetime for this to work!
