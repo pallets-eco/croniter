@@ -1,0 +1,21 @@
+name: zizmor
+
+on:
+  push:
+    branches: [main]
+    paths: [".github/**"]
+  pull_request:
+    paths: [".github/**"]
+
+permissions: {}
+
+jobs:
+  zizmor:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: zizmorcore/zizmor-action@71321a20a9ded102f6e9ce5718a2fcec2c4f70d8 # v0.5.2
+        with:
+          sarif-upload: true

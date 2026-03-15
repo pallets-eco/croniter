@@ -28,11 +28,11 @@ jobs:
           echo "releasable=$releasable" >> $GITHUB_OUTPUT
       id: v
     - name: Login to Docker Hub
-      uses: docker/login-action@v3
+      uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
       with:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
     - name: Build
       run: |
         set -ex

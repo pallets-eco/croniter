@@ -419,7 +419,7 @@ toml = [
 
 [[package]]
 name = "croniter"
-version = "6.0.1rc1"
+version = "6.2.2.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "python-dateutil" },
