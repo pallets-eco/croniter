@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "croniter"
-version = "6.2.2"
+version = "6.2.3.dev0"
 description = "croniter provides iteration for datetime object with cron like format"
 readme = "README.rst"
 license = "MIT"
