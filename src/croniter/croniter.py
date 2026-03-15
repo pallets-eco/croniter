@@ -581,7 +581,9 @@ class croniter:
                     return False, d
 
                 if is_prev:
-                    days_in_prev_month = DAYS[(month - 2) % self.MONTHS_IN_YEAR]
+                    prev_month = (month - 2) % self.MONTHS_IN_YEAR + 1
+                    prev_year = year - 1 if month == 1 else year
+                    days_in_prev_month = _last_day_of_month(prev_year, prev_month)
                     diff_day = nearest_diff_method(d.day, expanded[DAY_FIELD], days_in_prev_month)
                 else:
                     diff_day = nearest_diff_method(d.day, expanded[DAY_FIELD], days)

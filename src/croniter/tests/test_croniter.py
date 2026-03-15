@@ -2220,6 +2220,16 @@ class CroniterTest(base.TestCase):
         ret = croniter("15 22 29 2 *", datetime(2024, 2, 29)).get_prev(datetime)
         self.assertEqual(ret, datetime(2020, 2, 29, 22, 15))
 
+    def test_get_prev_leap_year_feb29(self):
+        """get_prev should not skip Feb 29 on leap years (issue #203)."""
+        expr = "0 0 29 * *"
+        for start in [datetime(2024, 3, 2), datetime(2024, 3, 15), datetime(2024, 3, 28)]:
+            ret = croniter(expr, start).get_prev(datetime)
+            self.assertEqual(ret, datetime(2024, 2, 29))
+        # Also verify from January crosses year boundary correctly
+        ret = croniter(expr, datetime(2024, 1, 15)).get_prev(datetime)
+        self.assertEqual(ret, datetime(2023, 12, 29))
+
     def test_expand_from_start_time_minute(self):
         seven_seconds_interval_pattern = "*/7 * * * *"
         ret1 = croniter(
