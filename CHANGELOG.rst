@@ -1,8 +1,16 @@
 Changelog
 ==============
 
-6.2.2 (unreleased)
+6.2.2 (2026-03-15)
 ------------------
+
+Packaging
+~~~~~~~~~
+- Switch build backend from ``flit_core`` to ``hatchling`` with pinned dependencies. [4cce160]
+- Add PEP 639 license expression (``license = "MIT"``) to project metadata. [4cce160]
+- Pin all GitHub Actions to SHA hashes across CI workflows. [4cce160]
+- Add dependabot for automated dependency updates. [4cce160]
+- Add zizmor workflow for CI security scanning. [4cce160]
 
 
 6.2.1 (2026-03-15)
