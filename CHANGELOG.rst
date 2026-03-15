@@ -1,8 +1,16 @@
 Changelog
 ==============
 
-6.2.1 (unreleased)
+6.2.1 (2026-03-15)
 ------------------
+
+Bugfixes
+~~~~~~~~
+- Fix ``get_prev`` skipping Feb 29 on leap years for day-of-month expressions. [441a0b5, #203, @Souls-R]
+
+Packaging
+~~~~~~~~~
+- Add ``License :: OSI Approved :: MIT License`` classifier. [270cbbc, @cdheiser]
 
 
 6.2.0 (2026-03-14)
