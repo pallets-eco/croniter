@@ -23,12 +23,12 @@ jobs:
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - name: Cache tox environments
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       with:
         path: .tox
         key: test-code-QA-${{ runner.os }}-${{ matrix.python }}-toxQA-${{ hashFiles('**/pyproject.toml') }}
     - name: Cache uv
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       with:
         path: ~/.cache/uv
         key: test-code-QA-${{ runner.os }}-${{ matrix.python }}-uvQA-${{ hashFiles('**/pyproject.toml') }}
@@ -49,12 +49,12 @@ jobs:
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - name: Cache tox environments
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       with:
         path: .tox
         key: test-py3-${{ runner.os }}-${{ matrix.python }}-tox-${{ hashFiles('**/pyproject.toml') }}
     - name: Cache uv
-      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
       with:
         path: ~/.cache/uv
         key: test-py3-${{ runner.os }}-${{ matrix.python }}-uvQA-${{ hashFiles('**/pyproject.toml') }}
