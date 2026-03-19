@@ -470,7 +470,9 @@ Upgrading
 To 2.0.0
 ---------
 
-- Install or upgrade pytz by using version specified  requirements/base.txt if you have it installed `<=2021.1`.
+
+
+- Install or upgrade pytz if you have it installed `<=2021.1`.
 
 Develop this package
 ====================
@@ -479,11 +481,12 @@ Develop this package
 
     git clone https://github.com/pallets-eco/croniter.git
     cd croniter
-    virtualenv --no-site-packages venv3
-    venv3/bin/pip install --upgrade -r requirements/test.txt -r requirements/lint.txt -r requirements/format.txt -r requirements/tox.txt
-    venv3/bin/black src/
-    venv3/bin/isort src/
-    venv3/bin/tox --current-env -e fmt,lint,test
+
+::
+    uv sync --group dev --group lint --group format --group tox
+    uv run ruff format src/
+    uv run ruff check --fix src/
+    uv run tox -e fmt,lint,test
 
 
 Make a new release
