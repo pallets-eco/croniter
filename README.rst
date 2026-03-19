@@ -476,18 +476,38 @@ To 2.0.0
 
 Develop this package
 ====================
+.. warning::
 
+   Building this project currently requires Python ``>=3.10`` because the pinned
+   ``hatchling`` build backend version requires it.
+   The package itself still supports Python ``>=3.9`` at runtime once installed.
+
+
+Clone the repository
 ::
 
     git clone https://github.com/pallets-eco/croniter.git
     cd croniter
 
+
+Use `uv <https://github.com/astral-sh/uv>`_ to install the dependencies
 ::
+
     uv sync --group dev --group lint --group format --group tox
-    uv run ruff format src/
-    uv run ruff check --fix src/
+
+
+
+
+Now you can run the formatters (``fmt``), linters (``lint``) and tests (``test``) using `tox <https://tox.wiki/en/4.50.1/index.html>`_ through uv.
+::
+
     uv run tox -e fmt,lint,test
 
+Build the package
+=================
+::
+
+    uv build
 
 Make a new release
 ====================
