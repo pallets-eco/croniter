@@ -470,21 +470,44 @@ Upgrading
 To 2.0.0
 ---------
 
-- Install or upgrade pytz by using version specified  requirements/base.txt if you have it installed `<=2021.1`.
+
+
+- Install or upgrade pytz if you have it installed `<=2021.1`.
 
 Develop this package
 ====================
+.. warning::
 
+   Building this project currently requires Python ``>=3.10`` because the pinned
+   ``hatchling`` build backend version requires it.
+   The package itself still supports Python ``>=3.9`` at runtime once installed.
+
+
+Clone the repository
 ::
 
     git clone https://github.com/pallets-eco/croniter.git
     cd croniter
-    virtualenv --no-site-packages venv3
-    venv3/bin/pip install --upgrade -r requirements/test.txt -r requirements/lint.txt -r requirements/format.txt -r requirements/tox.txt
-    venv3/bin/black src/
-    venv3/bin/isort src/
-    venv3/bin/tox --current-env -e fmt,lint,test
 
+
+Use `uv <https://github.com/astral-sh/uv>`_ to install the dependencies
+::
+
+    uv sync --group dev --group lint --group format --group tox
+
+
+
+
+Now you can run the formatters (``fmt``), linters (``lint``) and tests (``test``) using `tox <https://tox.wiki/en/4.50.1/index.html>`_ through uv.
+::
+
+    uv run tox -e fmt,lint,test
+
+Build the package
+=================
+::
+
+    uv build
 
 Make a new release
 ====================
