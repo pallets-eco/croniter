@@ -143,6 +143,19 @@ The ``strict`` and ``strict_year`` parameters are also available on ``expand()``
 
     >>> croniter.expand('0 0 31 2 *', strict=True)  # raises CroniterBadCronError
 
+Last day of month (l)
+=====================
+
+You can use ``l`` in the day-of-month field to mean "the last day of the month". This
+automatically respects the number of days in each month, including February and leap years::
+
+    >>> croniter('0 0 l * *', datetime(2024, 1, 30)).get_next(datetime)
+    datetime.datetime(2024, 1, 31, 0, 0)
+    >>> croniter('0 0 l * *', datetime(2024, 2, 1)).get_next(datetime)  # leap year
+    datetime.datetime(2024, 2, 29, 0, 0)
+    >>> croniter('0 0 l * *', datetime(2023, 2, 1)).get_next(datetime)  # non-leap year
+    datetime.datetime(2023, 2, 28, 0, 0)
+
 Nearest weekday (W)
 ===================
 
