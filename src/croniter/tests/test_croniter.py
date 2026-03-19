@@ -271,6 +271,35 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n4.month, 12)
         self.assertEqual(n4.day, 31)
 
+    def test_last_day_of_month_with_leap_year(self):
+        base = datetime(2020, 2, 1)
+        itr = croniter("0 0 l * *", base)
+        n1 = itr.get_next(datetime)
+        self.assertEqual(n1.month, 2)
+        self.assertEqual(n1.day, 29)
+        n2 = itr.get_next(datetime)
+        self.assertEqual(n2.month, 3)
+        self.assertEqual(n2.day, 31)
+
+    def test_last_day_of_month_with_leap_year_century_exception(self):
+        base = datetime(2100, 2, 1)
+        itr = croniter("0 0 l * *", base)
+        n1 = itr.get_next(datetime)
+        self.assertEqual(n1.month, 2)
+        self.assertEqual(n1.day, 28)
+        n2 = itr.get_next(datetime)
+        self.assertEqual(n2.month, 3)
+        self.assertEqual(n2.day, 31)
+
+        base = datetime(2400, 2, 1)
+        itr = croniter("0 0 l * *", base)
+        n1 = itr.get_next(datetime)
+        self.assertEqual(n1.month, 2)
+        self.assertEqual(n1.day, 29)
+        n2 = itr.get_next(datetime)
+        self.assertEqual(n2.month, 3)
+        self.assertEqual(n2.day, 31)
+
     def test_range_with_uppercase_last_day_of_month(self):
         base = datetime(2015, 9, 4)
         itr = croniter("0 0 29-L * *", base)
