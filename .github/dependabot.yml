@@ -4,6 +4,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 4
     groups:
       github-actions:
         patterns: ["*"]
@@ -11,6 +13,8 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 4
     groups:
       pip-dependencies:
         patterns: ["*"]
