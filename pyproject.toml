@@ -1,8 +1,8 @@
 [build-system]
 requires = [
     "hatchling==1.29.0",
-    "packaging==26.1",
-    "pathspec==1.0.4",
+    "packaging==26.2",
+    "pathspec==1.1.1",
     "pluggy==1.6.0",
     "trove-classifiers==2026.1.14.14",
 ]
