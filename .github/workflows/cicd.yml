@@ -13,6 +13,7 @@ env:
   RELEASABLE_REPOS: "^pallets-eco/croniter"
   RELEASABLE_BRANCHES: "^(refs/heads/)?(master|main|new-packaging)$"
   FORCE_COLOR: "true"
+permissions: {}
 jobs:
   test-code-QA:
     runs-on: ubuntu-latest
@@ -22,6 +23,8 @@ jobs:
         python-version: ["3.13"]
     steps:
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      with:
+        persist-credentials: false
     - name: Cache tox environments
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
@@ -48,6 +51,8 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      with:
+        persist-credentials: false
     - name: Cache tox environments
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
       with:
@@ -70,6 +75,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      with:
+        persist-credentials: false
     - name: Test with pytest
       run: |
          docker compose run --build --rm --env FORCE_COLOR=true --env UV_LINK_MODE=copy app tox -e test
