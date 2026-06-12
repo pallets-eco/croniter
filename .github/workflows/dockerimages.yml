@@ -10,6 +10,7 @@ env:
   BUILDKIT_PROGRESS: "plain"
   RELEASABLE_REPOS: "^pallets-eco/croniter"
   RELEASABLE_BRANCHES: "^(refs/heads/)?(master|main|new-packaging)$"
+permissions: {}
 jobs:
   docker-build:
     runs-on: ubuntu-24.04
@@ -33,6 +34,8 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
     - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      with:
+        persist-credentials: false
     - name: Build
       run: |
         set -ex
@@ -45,7 +48,9 @@ jobs:
     - name: test
       run: set -ex && docker compose run --rm app tox --current-env
     - name: Release
+      env:
+        RELEASABLE: ${{ steps.v.outputs.releasable }}
       run: |
-           if [ "x${{steps.v.outputs.releasable}}" = "xtrue" ];then
-             set -ex && docker push pallets-eco/croniter:${{matrix.FLAVOR}}
+           if [ "x${RELEASABLE}" = "xtrue" ];then
+             set -ex && docker push "pallets-eco/croniter:${FLAVOR}"
            fi
