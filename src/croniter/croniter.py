@@ -967,6 +967,7 @@ class croniter:
 
             e_list = expr.split(",")
             res = []
+            seen = set()
 
             while len(e_list) > 0:
                 e = e_list.pop()
@@ -1104,7 +1105,8 @@ class croniter:
 
                     if field_index == DOW_FIELD and nth and nth != "l":
                         rng = [f"{item}#{nth}" for item in rng]
-                    e_list += [a for a in rng if a not in e_list]
+                    e_list += [a for a in rng if a not in seen]
+                    seen.update(rng)
                 else:
                     if t.startswith("-"):
                         raise CroniterBadCronError(

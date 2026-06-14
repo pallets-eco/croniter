@@ -97,6 +97,16 @@ class CroniterSpeedTest(base.TestCase):
             d = itr.get_prev(datetime)
             offsets.add(d.utcoffset())
 
+    def test_large_comma_list_expands_quickly(self):
+        # Regression: a long comma list of ranges used to expand in O(n^2)
+        # because every expanded value was de-duplicated against the whole
+        # pending list. ~20k groups took minutes; it now finishes instantly
+        # and yields the same result as a single range.
+        expr = ",".join(["0-30"] * 20000) + " * * * *"
+        elapsed = Timer(lambda: croniter.expand(expr)).timeit(1)
+        self.assertLess(elapsed, 10, f"comma-list expansion too slow ({elapsed}s)")
+        self.assertEqual(croniter.expand(expr)[0][0], list(range(31)))
+
     def test_not_long_time(self):
         iterations = int(os.environ.get("CRONITER_TEST_SPEED_ITERATIONS", "40"))
         globs = globals()
