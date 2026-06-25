@@ -1049,6 +1049,11 @@ class croniter:
                             f" in field {field_index} is not acceptable"
                         )
                     step = int(step)
+                    if step == 0:
+                        raise CroniterBadCronError(
+                            f"[{expr_format}] step '{step}'"
+                            f" in field {field_index} is not acceptable"
+                        )
 
                     for band in low, high:
                         if not only_int_re.search(str(band)):
