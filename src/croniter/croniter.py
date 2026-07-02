@@ -1273,7 +1273,7 @@ class croniter:
         if field_index == DAY_FIELD:
             return ((dt.day - 1) % step) + 1
         if field_index == MONTH_FIELD:
-            return dt.month % step
+            return ((dt.month - 1) % step) + 1
         if field_index == DOW_FIELD:
             return (dt.weekday() + 1) % step
 
