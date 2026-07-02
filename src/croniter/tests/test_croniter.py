@@ -1321,6 +1321,13 @@ class CroniterTest(base.TestCase):
 
     def test_invalid_zerorepeat(self):
         self.assertFalse(croniter.is_valid("*/0 * * * *"))
+        # a zero step must be rejected the same way in every range form, not
+        # only `*/0`/`low-high/0` (low < high).  `low == high` and the reversed
+        # `low > high` forms previously reached `range(..., 0)` and surfaced a
+        # bare `ValueError` out of the constructor instead of CroniterBadCronError.
+        for expr in ("5-5/0 * * * *", "59-0/0 * * * *", "* * 31-1/0 * *", "* * * * 6-0/0"):
+            self.assertFalse(croniter.is_valid(expr))
+            self.assertRaises(CroniterBadCronError, croniter, expr, datetime(2020, 1, 1))
 
     def test_weekday_range(self):
         ret = []
