@@ -1,8 +1,23 @@
 Changelog
 ==============
 
-6.2.3 (unreleased)
+6.2.3 (2026-07-02)
 ------------------
+
+Features and Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+- Fix quadratic expansion of comma-separated range lists for a large speed-up on expressions with many ranges. [1d79fc6, #231, @alhudz]
+
+Bugfixes
+~~~~~~~~
+- Reject a zero step (e.g. ``5-5/0``) in equal and reversed cron ranges instead of silently accepting it. [ab27767, #232, @alhudz]
+- Fix ``expand_from_start_time`` month low-bound off-by-one so stepped month ranges start on the correct month. [f329964, #235, @alhudz]
+
+Packaging
+~~~~~~~~~
+- Fix zizmor-reported security findings in GitHub Actions workflows. [ed19f94, #230]
+- Bump pinned build and CI dependencies via dependabot.
+- Upgrade locked development and build dependencies (``uv lock --upgrade``).
 
 
 6.2.2 (2026-03-15)
