@@ -2379,6 +2379,24 @@ class CroniterTest(base.TestCase):
         ).get_prev(datetime)
         self.assertEqual(ret4, datetime(2024, 5, 1))
 
+    def test_expand_from_start_time_month_divisible(self):
+        # A start month that is a multiple of the step (here 6 % 3 == 0) must
+        # still expand to a valid 1-12 month, not month 0.
+        three_monts_interval_pattern = "0 0 1 */3 *"
+        ret1 = croniter(
+            three_monts_interval_pattern,
+            start_time=datetime(2024, 6, 1),
+            expand_from_start_time=True,
+        ).get_next(datetime)
+        self.assertEqual(ret1, datetime(2024, 9, 1))
+
+        ret2 = croniter(
+            three_monts_interval_pattern,
+            start_time=datetime(2024, 6, 1),
+            expand_from_start_time=True,
+        ).get_prev(datetime)
+        self.assertEqual(ret2, datetime(2024, 3, 1))
+
     def test_expand_from_start_time_day_of_week(self):
         three_monts_interval_pattern = "0 0 * * */2"
         ret1 = croniter(
