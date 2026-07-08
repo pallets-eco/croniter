@@ -2434,6 +2434,35 @@ class CroniterTest(base.TestCase):
         ).get_prev(datetime)
         self.assertEqual(ret4, datetime(2024, 7, 9))
 
+    def test_expand_from_start_time_day_of_week_sunday(self):
+        # A Sunday start (cron day-of-week 0) must keep Sunday in a */step
+        # schedule.  Sunday is isoweekday 7, so it has to wrap to 0 before the
+        # step modulo, otherwise the phase is computed from 7 and Sunday drops
+        # out of the expansion.
+        every_other_dow = "0 0 * * */2"
+        ret1 = croniter(
+            every_other_dow,
+            start_time=datetime(2024, 7, 14),  # Sunday
+            expand_from_start_time=True,
+        ).get_next(datetime)
+        self.assertEqual(ret1, datetime(2024, 7, 16))
+
+        ret2 = croniter(
+            every_other_dow,
+            start_time=datetime(2024, 7, 14),
+            expand_from_start_time=True,
+        ).get_prev(datetime)
+        self.assertEqual(ret2, datetime(2024, 7, 13))
+
+        # The phased schedule still fires on Sundays.
+        itr = croniter(
+            every_other_dow,
+            start_time=datetime(2024, 7, 14),
+            expand_from_start_time=True,
+        )
+        fires = [itr.get_next(datetime) for _ in range(4)]
+        self.assertIn(datetime(2024, 7, 21), fires)
+
     def test_get_next_fails_with_expand_from_start_time_true(self):
         expanded_croniter = croniter("0 0 */5 * *", expand_from_start_time=True)
         self.assertRaises(

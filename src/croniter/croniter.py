@@ -1280,7 +1280,7 @@ class croniter:
         if field_index == MONTH_FIELD:
             return ((dt.month - 1) % step) + 1
         if field_index == DOW_FIELD:
-            return (dt.weekday() + 1) % step
+            return (dt.isoweekday() % 7) % step
 
         raise ValueError("Can't get current date number for index larger than 4")
 
