@@ -1,8 +1,16 @@
 Changelog
 ==============
 
-6.2.4 (unreleased)
+6.2.4 (2026-07-10)
 ------------------
+
+Bugfixes
+~~~~~~~~
+- Fix ``expand_from_start_time`` day-of-week low bound so Sunday wraps correctly for stepped day-of-week ranges (``isoweekday() % 7`` instead of ``weekday() + 1``). [44e3090, #239, @alhudz]
+
+Packaging
+~~~~~~~~~
+- Bump pinned GitHub Actions via dependabot. [fd13d2e, #240; 5cd2e46, #238]
 
 
 6.2.3 (2026-07-02)
