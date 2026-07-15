@@ -4,6 +4,10 @@ Changelog
 6.2.5 (unreleased)
 ------------------
 
+Bugfixes
+~~~~~~~~
+- Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted (OR semantics) and the day-of-month side is unsatisfiable (e.g. ``30 6 31 2 1``): the satisfiable day-of-week side is now used instead of aborting the whole schedule.
+
 
 6.2.4 (2026-07-10)
 ------------------

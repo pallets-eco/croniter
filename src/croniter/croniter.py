@@ -493,11 +493,27 @@ class croniter:
             else:
                 bak = expanded[DOW_FIELD]
                 expanded[DOW_FIELD] = ["*"]
-                t1 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
+                # Under OR semantics an unsatisfiable side (e.g. day 31 restricted
+                # to months without a 31st) must contribute nothing rather than
+                # abort the whole schedule, so the other side can still match.
+                try:
+                    t1 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
+                except CroniterBadDateError:
+                    t1 = None
                 expanded[DOW_FIELD] = bak
                 expanded[DAY_FIELD] = ["*"]
 
-                t2 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
+                try:
+                    t2 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
+                except CroniterBadDateError:
+                    t2 = None
+
+                if t1 is None:
+                    if t2 is None:
+                        raise CroniterBadDateError("failed to find next date")
+                    return t2
+                if t2 is None:
+                    return t1
                 if is_prev:
                     return t1 if t1 > t2 else t2
                 return t1 if t1 < t2 else t2

@@ -3258,3 +3258,27 @@ def gen_all_sunday_forms(expr, loops=None, start=None, is_prev=None):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_dom_dow_both_restricted_with_unsatisfiable_dom():
+    # When day-of-month and day-of-week are both restricted (OR / day_or=True),
+    # an unsatisfiable day-of-month side (e.g. the 31st in February) must not
+    # abort the schedule -- the day-of-week side still matches. Regression for
+    # get_next/get_prev raising CroniterBadDateError on such expressions.
+    base = datetime(2021, 1, 1)
+    # "31 2 1" -> (Feb 31, impossible) OR (Monday in February). 2021-02-01 is a Monday.
+    itr = croniter("30 6 31 2 1", base, ret_type=datetime)
+    assert itr.get_next(datetime) == datetime(2021, 2, 1, 6, 30)
+    assert itr.get_next(datetime) == datetime(2021, 2, 8, 6, 30)
+
+    # get_prev from March must find the last matching Monday of February.
+    itr2 = croniter("30 6 31 2 1", datetime(2021, 3, 1), ret_type=datetime)
+    assert itr2.get_prev(datetime) == datetime(2021, 2, 22, 6, 30)
+
+    # is_valid already accepted it; behavior must now match.
+    assert croniter.is_valid("30 6 31 2 1")
+
+    # A satisfiable day-of-month side keeps working unchanged.
+    assert croniter("0 0 31 * 1", base, ret_type=datetime).get_next(datetime) == datetime(
+        2021, 1, 4
+    )
