@@ -1022,12 +1022,19 @@ class croniter:
                 )
                 m = step_search_re.search(t)
 
+                # Tracks the "{start}/{step}" single-value-with-step form (normalized
+                # just below to "{start}-{max}/{step}"). It must be distinguished from an
+                # explicit equal range such as "Jan-Jan": when start == max, the former
+                # denotes just [start] while the latter denotes the whole cycle. This is
+                # consulted in the ``low == high`` branch further down.
+                single_value_step = False
                 if not m:
                     # Before matching step_search_re,
                     # normalize "{start}/{step}" to "{start}-{max}/{step}".
                     # Example: in the minute field, "10/5" normalizes to "10-59/5"
                     t = re.sub(r"^(.+)\/(.+)$", r"\1-%d/\2" % (cls.RANGES[field_index][1]), str(e))
                     m = step_search_re.search(t)
+                    single_value_step = bool(m)
 
                 if m:
                     # early abort if low/high are out of bounds
@@ -1096,12 +1103,19 @@ class croniter:
                             ):
                                 to_skip = step - already_skipped
                         rng += list(range(cls.RANGES[field_index][0] + to_skip, high + 1, step))
-                    # if we include a range type: Jan-Jan, or Sun-Sun,
-                    #  it means the whole cycle (all days of week, # all monthes of year, etc)
                     elif low == high:
-                        rng = list(
-                            range(cls.RANGES[field_index][0], cls.RANGES[field_index][1] + 1, step)
-                        )
+                        if single_value_step:
+                            # "{start}/{step}" where start == field max, normalized to
+                            # "{start}-{start}/{step}": a single start with a step, so it
+                            # denotes just [start] -- e.g. "59/15" is minute 59, not
+                            # 0,15,30,45 (the whole field).
+                            rng = list(range(low, high + 1, step))
+                        else:
+                            # if we include a range type: Jan-Jan, or Sun-Sun, it means
+                            # the whole cycle (all days of week, all monthes of year, etc)
+                            rng = list(
+                                range(cls.RANGES[field_index][0], cls.RANGES[field_index][1] + 1, step)
+                            )
                     else:
                         try:
                             rng = list(range(low, high + 1, step))
