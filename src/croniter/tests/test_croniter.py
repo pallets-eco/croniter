@@ -398,6 +398,27 @@ class CroniterTest(base.TestCase):
         self.assertEqual(croniter("30 1-12,0,10-23 15-21 * fri").expanded[h], wildcard)
         self.assertEqual(croniter("30 1-23,0 15-21 * fri").expanded[h], wildcard)
 
+    def test_step_from_field_max(self):
+        """"{start}/{step}" with start == field max means [start], not the whole field.
+
+        "{start}/{step}" normalizes to "{start}-{max}/{step}"; when start == max this
+        became "{max}-{max}/{step}", which was wrongly treated like an explicit equal
+        range ("Jan-Jan" => whole cycle) and expanded to the entire field. It must stay
+        a single stepped start: e.g. "59/15" is minute 59 only, not 0,15,30,45.
+        """
+        m, h = 0, 1
+        # The regressing cases: start == field max.
+        self.assertEqual(croniter("59/15 * * * *").expanded[m], [59])
+        self.assertEqual(croniter("* 23/6 * * *").expanded[h], [23])
+        # Neighbouring starts were always fine; keep them covered.
+        self.assertEqual(croniter("58/15 * * * *").expanded[m], [58])
+        self.assertEqual(croniter("45/15 * * * *").expanded[m], [45])
+        self.assertEqual(croniter("5/15 * * * *").expanded[m], [5, 20, 35, 50])
+        self.assertEqual(croniter("*/15 * * * *").expanded[m], [0, 15, 30, 45])
+        # An explicit equal range still means the whole cycle (unchanged behaviour).
+        self.assertEqual(croniter("0 0 1 1-1 0").expanded[3], ["*"])
+        self.assertEqual(croniter("5-5 * * * *").expanded[m], ["*"])
+
     def test_block_dup_ranges(self):
         """Ensure that duplicate/overlapping ranges are squashed"""
         m, h, d, mon, dow, s = range(6)
