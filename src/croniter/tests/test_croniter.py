@@ -202,6 +202,34 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n3.day, 29)
         self.assertEqual(n3.year, 2010)
 
+    def test_weekday_day_or_with_impossible_day_of_month(self):
+        # A day-of-month that never occurs in the given month does not
+        # invalidate the expression -- the day-of-week half of the union
+        # still matches. "0 0 31 2 0" means "every Sunday in February".
+        for expr, expected in (
+            ("0 0 31 2 0", [(2026, 2, 1), (2026, 2, 8), (2026, 2, 15)]),
+            ("0 0 30 2 0", [(2026, 2, 1), (2026, 2, 8), (2026, 2, 15)]),
+            ("0 0 31 4 0", [(2026, 4, 5), (2026, 4, 12), (2026, 4, 19)]),
+        ):
+            itr = croniter(expr, datetime(2026, 1, 1))
+            got = [itr.get_next(datetime) for _ in range(3)]
+            self.assertEqual([(d.year, d.month, d.day) for d in got], expected, expr)
+
+    def test_weekday_day_or_with_impossible_day_of_month_prev(self):
+        itr = croniter("0 0 31 2 0", datetime(2026, 3, 1))
+        got = [itr.get_prev(datetime) for _ in range(3)]
+        self.assertEqual(
+            [(d.year, d.month, d.day) for d in got],
+            [(2026, 2, 22), (2026, 2, 15), (2026, 2, 8)],
+        )
+
+    def test_impossible_day_of_month_alone_still_raises(self):
+        # With no day-of-week to fall back on there really is no such date.
+        for expr in ("0 0 31 2 *", "0 0 30 2 *"):
+            itr = croniter(expr, datetime(2026, 1, 1))
+            with self.assertRaises(CroniterBadDateError, msg=expr):
+                itr.get_next(datetime)
+
     def test_weekday_day_and(self):
         base = datetime(2010, 1, 25)
         itr = croniter("0 0 1 * mon", base, day_or=False)
