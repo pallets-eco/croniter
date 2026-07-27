@@ -15,6 +15,7 @@ from croniter import (
     CroniterNotAlphaError,
     CroniterUnsupportedSyntaxError,
     croniter,
+    croniter_range,
     datetime_to_timestamp,
 )
 from croniter.croniter import VALID_LEN_EXPRESSION
@@ -201,6 +202,76 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n3.month, 9)
         self.assertEqual(n3.day, 29)
         self.assertEqual(n3.year, 2010)
+
+    def test_weekday_day_or_with_impossible_day_of_month(self):
+        # A day-of-month that never occurs in the given month does not
+        # invalidate the expression -- the day-of-week half of the union
+        # still matches. "0 0 31 2 0" means "every Sunday in February".
+        for expr, expected in (
+            ("0 0 31 2 0", [(2026, 2, 1), (2026, 2, 8), (2026, 2, 15)]),
+            ("0 0 30 2 0", [(2026, 2, 1), (2026, 2, 8), (2026, 2, 15)]),
+            ("0 0 31 4 0", [(2026, 4, 5), (2026, 4, 12), (2026, 4, 19)]),
+        ):
+            itr = croniter(expr, datetime(2026, 1, 1))
+            got = [itr.get_next(datetime) for _ in range(3)]
+            self.assertEqual([(d.year, d.month, d.day) for d in got], expected, expr)
+
+    def test_weekday_day_or_with_impossible_day_of_month_prev(self):
+        itr = croniter("0 0 31 2 0", datetime(2026, 3, 1))
+        got = [itr.get_prev(datetime) for _ in range(3)]
+        self.assertEqual(
+            [(d.year, d.month, d.day) for d in got],
+            [(2026, 2, 22), (2026, 2, 15), (2026, 2, 8)],
+        )
+
+    def test_impossible_day_of_month_alone_still_raises(self):
+        # With no day-of-week to fall back on there really is no such date.
+        for expr in ("0 0 31 2 *", "0 0 30 2 *"):
+            itr = croniter(expr, datetime(2026, 1, 1))
+            with self.assertRaises(CroniterBadDateError, msg=expr):
+                itr.get_next(datetime)
+
+    def test_impossible_day_of_month_match_and_range(self):
+        # match() and croniter_range() swallow CroniterBadDateError, so an
+        # aborted schedule reaches the caller as "no match" rather than as an
+        # error. 2026-02-01 is a Sunday, so it does match "0 0 31 2 0".
+        self.assertTrue(croniter.match("0 0 31 2 0", datetime(2026, 2, 1)))
+        self.assertFalse(croniter.match("0 0 31 2 0", datetime(2026, 2, 2)))
+        got = croniter_range(datetime(2026, 2, 1), datetime(2026, 3, 1), "0 0 31 2 0")
+        self.assertEqual(
+            [(d.year, d.month, d.day) for d in got],
+            [(2026, 2, 1), (2026, 2, 8), (2026, 2, 15), (2026, 2, 22)],
+        )
+
+    def test_nth_weekday_with_restricted_day_of_month_still_raises(self):
+        # '#' is carried by nth_weekday_of_month rather than by the day-of-week
+        # field, so blanking that field does not isolate the day-of-month half:
+        # it stays an intersection, the semantics test_issue_k33 pins down.
+        # Such an expression must keep raising instead of silently dropping a
+        # field -- "8-9" can never coincide with the first Mon-Fri of January.
+        for expr in ("30 23 8-9 JAN MON-FRI#1", "0 0 1 2 fri#2", "0 0 15 * fri#2"):
+            itr = croniter(expr, datetime(2026, 1, 1))
+            with self.assertRaises(CroniterBadDateError, msg=expr):
+                itr.get_next(datetime)
+
+    def test_nearest_weekday_with_restricted_day_of_week_still_raises(self):
+        # Same for 'W', which is carried by self.nearest_weekday.
+        itr = croniter("0 0 31w 2 0", datetime(2026, 1, 1))
+        with self.assertRaises(CroniterBadDateError):
+            itr.get_next(datetime)
+
+    def test_both_union_sides_unsatisfiable_reports_direction(self):
+        # A year field can rule out both halves at once. The error names the
+        # direction that was searched.
+        itr = croniter("0 0 31 2 0 0 2026", datetime(2027, 6, 1))
+        with self.assertRaises(CroniterBadDateError) as ctx:
+            itr.get_next(datetime)
+        self.assertEqual(str(ctx.exception), "failed to find next date")
+
+        itr = croniter("0 0 31 2 0 0 2026", datetime(2025, 6, 1))
+        with self.assertRaises(CroniterBadDateError) as ctx:
+            itr.get_prev(datetime)
+        self.assertEqual(str(ctx.exception), "failed to find prev date")
 
     def test_weekday_day_and(self):
         base = datetime(2010, 1, 25)

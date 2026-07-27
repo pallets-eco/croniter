@@ -491,13 +491,45 @@ class croniter:
                 # does an intersect instead
                 pass
             else:
+                # Under OR semantics an unsatisfiable side -- the 31st in a month
+                # that has no 31st, say -- contributes no dates rather than ruling
+                # out the expression, so the other side must still be able to
+                # match. Only both sides failing means there is no such date.
+                #
+                # That only holds while each side is a clean operand. '#' and 'W'
+                # are not carried by the DAY/DOW fields but by nth_weekday_of_month
+                # and self.nearest_weekday, so blanking the fields above does not
+                # remove them and each side stays an intersection (the semantics
+                # test_issue_k33 pins down). Swallowing a failure there would drop
+                # the other field from the schedule instead, so let it propagate.
+                clean_split = not nth_weekday_of_month and not self.nearest_weekday
+
                 bak = expanded[DOW_FIELD]
                 expanded[DOW_FIELD] = ["*"]
-                t1 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
+                try:
+                    t1 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
+                except CroniterBadDateError:
+                    if not clean_split:
+                        raise
+                    t1 = None
                 expanded[DOW_FIELD] = bak
                 expanded[DAY_FIELD] = ["*"]
 
-                t2 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
+                try:
+                    t2 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
+                except CroniterBadDateError:
+                    if not clean_split:
+                        raise
+                    t2 = None
+
+                if t1 is None:
+                    if t2 is None:
+                        raise CroniterBadDateError(
+                            "failed to find prev date" if is_prev else "failed to find next date"
+                        )
+                    return t2
+                if t2 is None:
+                    return t1
                 if is_prev:
                     return t1 if t1 > t2 else t2
                 return t1 if t1 < t2 else t2
