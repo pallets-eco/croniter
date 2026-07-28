@@ -491,14 +491,15 @@ class croniter:
                 # does an intersect instead
                 pass
             else:
+                split_is_clean = not nth_weekday_of_month and not self.nearest_weekday
+
                 bak = expanded[DOW_FIELD]
                 expanded[DOW_FIELD] = ["*"]
-                # Either side of the union may be unsatisfiable on its own -- e.g.
-                # day 31 in February. That only rules out the whole expression if
-                # the other side is unsatisfiable too.
                 try:
                     t1 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
                 except CroniterBadDateError:
+                    if not split_is_clean:
+                        raise
                     t1 = None
                 expanded[DOW_FIELD] = bak
                 expanded[DAY_FIELD] = ["*"]
@@ -506,13 +507,18 @@ class croniter:
                 try:
                     t2 = self._calc(current, expanded, nth_weekday_of_month, is_prev)
                 except CroniterBadDateError:
+                    if not split_is_clean:
+                        raise
                     t2 = None
-                if t1 is None or t2 is None:
-                    if t1 is None and t2 is None:
+
+                if t1 is None:
+                    if t2 is None:
                         raise CroniterBadDateError(
                             "failed to find prev date" if is_prev else "failed to find next date"
                         )
-                    return t1 if t2 is None else t2
+                    return t2
+                if t2 is None:
+                    return t1
                 if is_prev:
                     return t1 if t1 > t2 else t2
                 return t1 if t1 < t2 else t2

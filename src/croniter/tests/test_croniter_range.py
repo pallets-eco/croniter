@@ -215,6 +215,15 @@ class CroniterRangeTest(base.TestCase):
         self.assertEqual(fwd[0], start)
         self.assertEqual(fwd[-1], stop)
 
+    def test_impossible_day_of_month_does_not_empty_the_range(self):
+        start = datetime(2026, 2, 1)
+        stop = datetime(2026, 3, 1)
+        fwd = list(croniter_range(start, stop, "0 0 31 2 0"))
+        self.assertEqual(
+            [(d.month, d.day) for d in fwd],
+            [(2, 1), (2, 8), (2, 15), (2, 22)],
+        )
+
     def test_year_range(self):
         start = datetime(2010, 1, 1)
         stop = datetime(2030, 1, 1)
