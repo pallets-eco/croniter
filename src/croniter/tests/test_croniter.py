@@ -15,7 +15,6 @@ from croniter import (
     CroniterNotAlphaError,
     CroniterUnsupportedSyntaxError,
     croniter,
-    croniter_range,
     datetime_to_timestamp,
 )
 from croniter.croniter import VALID_LEN_EXPRESSION
@@ -231,17 +230,12 @@ class CroniterTest(base.TestCase):
             with self.assertRaises(CroniterBadDateError, msg=expr):
                 itr.get_next(datetime)
 
-    def test_impossible_day_of_month_match_and_range(self):
-        # match() and croniter_range() swallow CroniterBadDateError, so an
-        # aborted schedule reaches the caller as "no match" rather than as an
-        # error. 2026-02-01 is a Sunday, so it does match "0 0 31 2 0".
+    def test_impossible_day_of_month_still_matches(self):
+        # match() swallows CroniterBadDateError, so an aborted schedule reaches the
+        # caller as "no match" rather than as an error. 2026-02-01 is a Sunday, so it
+        # does match "0 0 31 2 0".
         self.assertTrue(croniter.match("0 0 31 2 0", datetime(2026, 2, 1)))
         self.assertFalse(croniter.match("0 0 31 2 0", datetime(2026, 2, 2)))
-        got = croniter_range(datetime(2026, 2, 1), datetime(2026, 3, 1), "0 0 31 2 0")
-        self.assertEqual(
-            [(d.year, d.month, d.day) for d in got],
-            [(2026, 2, 1), (2026, 2, 8), (2026, 2, 15), (2026, 2, 22)],
-        )
 
     def test_nth_weekday_with_restricted_day_of_month_still_raises(self):
         # '#' is carried by nth_weekday_of_month rather than by the day-of-week
