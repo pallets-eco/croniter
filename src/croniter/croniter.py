@@ -326,11 +326,13 @@ class croniter:
         self.cur = 0.0
         self.set_current(start_time, force=True)
 
-        self.expanded, self.nth_weekday_of_month, self.expressions, self.nearest_weekday = self._expand(
-            expr_format,
-            hash_id=hash_id,
-            from_timestamp=self.dst_start_time if self._expand_from_start_time else None,
-            second_at_beginning=second_at_beginning,
+        self.expanded, self.nth_weekday_of_month, self.expressions, self.nearest_weekday = (
+            self._expand(
+                expr_format,
+                hash_id=hash_id,
+                from_timestamp=self.dst_start_time if self._expand_from_start_time else None,
+                second_at_beginning=second_at_beginning,
+            )
         )
         self.fields = CRON_FIELDS[len(self.expanded)]
         self._is_prev = is_prev
@@ -531,8 +533,8 @@ class croniter:
                 if t2 is None:
                     return t1
                 if is_prev:
-                    return t1 if t1 > t2 else t2
-                return t1 if t1 < t2 else t2
+                    return max(t1, t2)
+                return min(t1, t2)
 
         return self._calc(current, expanded, nth_weekday_of_month, is_prev)
 
@@ -938,10 +940,31 @@ class croniter:
         return val
 
     # Maximum days in each month (non-leap year for Feb)
-    DAYS_IN_MONTH = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
+    DAYS_IN_MONTH = {
+        1: 31,
+        2: 28,
+        3: 31,
+        4: 30,
+        5: 31,
+        6: 30,
+        7: 31,
+        8: 31,
+        9: 30,
+        10: 31,
+        11: 30,
+        12: 31,
+    }
 
     @classmethod
-    def _expand(cls, expr_format, hash_id=None, second_at_beginning=False, from_timestamp=None, strict=False, strict_year=None):
+    def _expand(
+        cls,
+        expr_format,
+        hash_id=None,
+        second_at_beginning=False,
+        from_timestamp=None,
+        strict=False,
+        strict_year=None,
+    ):
         # Split the expression in components, and normalize L -> l, MON -> mon,
         # etc. Keep expr_format untouched so we can use it in the exception
         # messages.
@@ -1317,14 +1340,28 @@ class croniter:
         raise ValueError("Can't get current date number for index larger than 4")
 
     @classmethod
-    def is_valid(cls, expression, hash_id=None, encoding="UTF-8", second_at_beginning=False, strict=False, strict_year=None):
+    def is_valid(
+        cls,
+        expression,
+        hash_id=None,
+        encoding="UTF-8",
+        second_at_beginning=False,
+        strict=False,
+        strict_year=None,
+    ):
         if hash_id:
             if not isinstance(hash_id, (bytes, str)):
                 raise TypeError("hash_id must be bytes or UTF-8 string")
             if not isinstance(hash_id, bytes):
                 hash_id = hash_id.encode(encoding)
         try:
-            cls.expand(expression, hash_id=hash_id, second_at_beginning=second_at_beginning, strict=strict, strict_year=strict_year)
+            cls.expand(
+                expression,
+                hash_id=hash_id,
+                second_at_beginning=second_at_beginning,
+                strict=strict,
+                strict_year=strict_year,
+            )
         except CroniterError:
             return False
         return True
