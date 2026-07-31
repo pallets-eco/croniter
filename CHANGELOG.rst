@@ -38,6 +38,42 @@ Bugfixes
   worked: seconds take their phase from the start time's second, and years — which do
   not start at zero — take theirs from the field minimum, as day-of-month and month
   already do. [#254, @potiuk]
+- Fix ``{start}/{step}`` expanding to the whole field when ``start`` is the field
+  maximum. ``59/15 * * * *`` fired at ``:00``/``:15``/``:30``/``:45`` instead of
+  ``:59``, and the same held in every field at its own maximum: ``23/6`` hours,
+  ``31/5`` day-of-month, ``DEC/3`` months, ``SAT/2`` day-of-week, and — not in the
+  original report — ``59/15`` seconds and ``2099/5`` years. ``{start}/{step}``
+  normalizes to ``{start}-{max}/{step}``; when ``start`` is the maximum the two
+  bounds collide, making the token indistinguishable from an explicitly written
+  equal range such as ``Jan-Jan``, which croniter deliberately expands to the whole
+  cycle. The two forms are now distinguished. An explicitly written equal range is
+  unchanged, and so is every start below the field maximum. The fix applies in
+  ``expand_from_start_time`` mode as well as by default. [#246, @earfman]
+
+  .. warning::
+
+     **This changes existing schedules, silently and substantially.** Any
+     ``{max}/{step}`` expression that was firing across the whole field now fires
+     once per cycle. The ``{max}/1`` forms are the sharpest case, because they read
+     as "every": ``* * * * 6/1`` meant *every day* and now means *Saturdays only*;
+     ``59/1 * * * *`` meant *every minute* and now means *minute 59*. The same
+     applies to ``23/1`` hours, ``31/1`` day-of-month, ``12/1`` months, and to the
+     optional seconds and years fields (``59/1``, ``2099/1``). Use a wildcard
+     (``*`` or ``*/1``) for "every". **Before upgrading, audit for any field whose
+     value begins with that field's maximum followed by a slash.**
+
+     Two consequences worth stating separately:
+
+     - A ``{max}/{step}`` expression can now be **unsatisfiable** rather than merely
+       different. ``0 0 1 1 * * 2099/1`` previously expanded the year field to every
+       year; it now means the year 2099 only, so iterating from a later start time
+       raises ``CroniterBadDateError`` instead of returning a date.
+     - In ``expand_from_start_time`` mode, ``{max}/{step}`` in the **seconds or
+       years** field previously raised ``ValueError: Can't get current date number
+       for index larger than 4`` and now returns a result. That exception was raised
+       from outside the ``CroniterError`` hierarchy, so code catching
+       ``CroniterError`` never saw it. Starts below the maximum in those two fields
+       still raise it; that is pre-existing and untouched here.
 
 Testing and Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
