@@ -464,25 +464,88 @@ class CroniterTest(base.TestCase):
         self.assertEqual(croniter("30 1-23,0 15-21 * fri").expanded[h], wildcard)
 
     def test_step_from_field_max(self):
-        """"{start}/{step}" with start == field max means [start], not the whole field.
+        """ "{start}/{step}" with start at the field maximum means [start].
 
-        "{start}/{step}" normalizes to "{start}-{max}/{step}"; when start == max this
-        became "{max}-{max}/{step}", which was wrongly treated like an explicit equal
-        range ("Jan-Jan" => whole cycle) and expanded to the entire field. It must stay
-        a single stepped start: e.g. "59/15" is minute 59 only, not 0,15,30,45.
+        "{start}/{step}" normalizes to "{start}-{max}/{step}". When start is itself
+        the maximum, the two bounds collide and the token becomes indistinguishable
+        from an explicitly written equal range such as "Jan-Jan", which croniter
+        deliberately expands to the whole cycle. So "59/15" fired at :00/:15/:30/:45
+        instead of :59.
         """
-        m, h = 0, 1
-        # The regressing cases: start == field max.
+        m, h, dom, mon, dow = range(5)
+        # Every field, at its own maximum.
         self.assertEqual(croniter("59/15 * * * *").expanded[m], [59])
         self.assertEqual(croniter("* 23/6 * * *").expanded[h], [23])
-        # Neighbouring starts were always fine; keep them covered.
-        self.assertEqual(croniter("58/15 * * * *").expanded[m], [58])
+        self.assertEqual(croniter("* * 31/5 * *").expanded[dom], [31])
+        self.assertEqual(croniter("* * * DEC/3 *").expanded[mon], [12])
+        self.assertEqual(croniter("* * * * SAT/2").expanded[dow], [6])
+        # Starts below the maximum were never affected; kept as non-regression.
         self.assertEqual(croniter("45/15 * * * *").expanded[m], [45])
+        self.assertEqual(croniter("58/15 * * * *").expanded[m], [58])
+        self.assertEqual(croniter("44/15 * * * *").expanded[m], [44, 59])
         self.assertEqual(croniter("5/15 * * * *").expanded[m], [5, 20, 35, 50])
         self.assertEqual(croniter("*/15 * * * *").expanded[m], [0, 15, 30, 45])
-        # An explicit equal range still means the whole cycle (unchanged behaviour).
-        self.assertEqual(croniter("0 0 1 1-1 0").expanded[3], ["*"])
+        # An explicit equal range still means the whole cycle. This is the behaviour
+        # the bug was borrowing, and it must not move. The pair below is the whole
+        # distinction in two lines: "59/15" is minute 59, "59-59/15" is every 15th
+        # minute of the entire field.
         self.assertEqual(croniter("5-5 * * * *").expanded[m], ["*"])
+        self.assertEqual(croniter("59-59/15 * * * *").expanded[m], [0, 15, 30, 45])
+        self.assertEqual(croniter("0 0 1 1-1 0").expanded[mon], ["*"])
+        self.assertEqual(croniter("0 0 * JAN-JAN *").expanded[mon], ["*"])
+        # Day-of-week 7 aliases to 0, so "7/2" is "0/2" and is not at the maximum.
+        self.assertEqual(croniter("* * * * 7/2").expanded[dow], [0, 2, 4, 6])
+
+    def test_step_from_field_max_does_not_leak_across_a_list(self):
+        """The "{start}/{step}" marker must not survive into the next list element.
+
+        The expression is processed one comma-separated element at a time. If the
+        marker were initialized outside that loop it would persist, and a later
+        explicit equal range in the same expression would be silently demoted to a
+        single value. Below, "59/15" contributes nothing new because "55-59/2"
+        already covers 59, so nothing re-enters the work list to reset it -- which is
+        exactly the case a per-expression initialization would get wrong.
+        """
+        m, mon = 0, 3
+        self.assertEqual(croniter("1-1,59/15,55-59/2 * * * *").expanded[m], ["*"])
+        self.assertEqual(croniter("* * * 1-1,12/6,11-12/1 *").expanded[mon], ["*"])
+
+    def test_step_from_field_max_expand_from_start_time(self):
+        """The fix has to hold under expand_from_start_time as well.
+
+        In that mode from_timestamp rewrites the lower bound of a stepped token so
+        the cycle re-bases on the start time, and it does so before the equal-range
+        test is reached. Left alone, the fix would be reachable by default and
+        unreachable here -- the harder failure to notice of the two.
+        """
+        m, h, dow = 0, 1, 4
+        start = datetime(2024, 7, 11, 10, 7)
+
+        def efst(expr, field):
+            return croniter(expr, start_time=start, expand_from_start_time=True).expanded[field]
+
+        self.assertEqual(efst("59/15 * * * *", m), [59])
+        self.assertEqual(efst("* 23/6 * * *", h), [23])
+        self.assertEqual(efst("* * * * SAT/2", dow), [6])
+        # Re-basing is untouched for every token that really does describe a cycle,
+        # including stepped starts below the maximum. Whether an explicit lower bound
+        # ought to survive re-basing at all is a separate question, deliberately not
+        # answered here: "45/15" keeps its existing behaviour.
+        self.assertEqual(efst("*/15 * * * *", m), [7, 22, 37, 52])
+        self.assertEqual(efst("5/15 * * * *", m), [7, 22, 37, 52])
+        self.assertEqual(efst("45/15 * * * *", m), [7, 22, 37, 52])
+
+    def test_step_of_one_from_field_max(self):
+        """ "{max}/1" is the start alone, where it used to be the whole field.
+
+        Called out separately because it is the shape most likely to be sitting in
+        somebody's crontab: "* * * * 6/1" read as every day and now reads as Saturday.
+        """
+        m, dow = 0, 4
+        self.assertEqual(croniter("* * * * 6/1").expanded[dow], [6])
+        self.assertEqual(croniter("59/1 * * * *").expanded[m], [59])
+        # A wildcard is still the way to say "every".
+        self.assertEqual(croniter("* * * * */1").expanded[dow], ["*"])
 
     def test_block_dup_ranges(self):
         """Ensure that duplicate/overlapping ranges are squashed"""
