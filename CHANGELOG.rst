@@ -1,7 +1,7 @@
 Changelog
 ==============
 
-6.2.5 (unreleased)
+6.3.0 (unreleased)
 ------------------
 
 Bugfixes
