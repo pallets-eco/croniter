@@ -1129,14 +1129,36 @@ class croniter:
                     # should mean under that flag, and it is not this fix's to answer.
                     start_at_field_max = start_with_step and low == high
 
+                    # Only an equal range that was *written* as one means the whole
+                    # cycle. Both the "{start}/{step}" normalization above and the
+                    # re-basing below can collide the two bounds as a side effect, and
+                    # neither is the user saying "Jan-Jan".
+                    explicit_equal_range = low == high and not start_with_step
+
                     # ``from_timestamp`` re-bases the start of a *cycle* on the start
                     # time. A single point has no cycle to re-base, and rewriting its
                     # bound here would leave the bug reachable in
                     # ``expand_from_start_time`` mode while looking fixed by default.
-                    if from_timestamp and not start_at_field_max:
-                        low = cls._get_low_from_current_date_number(
+                    if from_timestamp and not start_at_field_max and low <= high:
+                        # Re-basing supplies the *phase* of the cycle, not its bounds:
+                        # take the first value of that phase lying inside the range the
+                        # expression declares. From a start at minute 7, "10-50/15" is
+                        # 22,37 -- not 7,22,37, which fires below its own lower bound.
+                        # If no value of the phase fits, the expression is honoured as
+                        # written, so an expansion can never come out empty. Note that
+                        # a re-phased range can hold fewer periods than the one it
+                        # replaces -- "10-20/7" is 10,17 by default but 14 alone from
+                        # a start at minute 7 -- which is inherent to re-phasing inside
+                        # a bounded window, not a value being dropped. A wrapping range
+                        # (Apr-Jan, Sat-Sun) has no single in-range phase to pick, so it
+                        # is left alone rather than silently unwrapped.
+                        phase = cls._get_low_from_current_date_number(
                             field_index, int(step), int(from_timestamp), from_timestamp_tz
                         )
+                        if phase < low:
+                            phase += -(-(low - phase) // step) * step
+                        if low <= phase <= high:
+                            low = phase
 
                     # Handle when the second bound of the range is in backtracking order:
                     # eg: X-Sun or X-7 (Sat-Sun) in DOW, or X-Jan (Apr-Jan) in MONTH
@@ -1161,7 +1183,7 @@ class croniter:
                         rng += list(range(cls.RANGES[field_index][0] + to_skip, high + 1, step))
                     # if we include a range type: Jan-Jan, or Sun-Sun,
                     #  it means the whole cycle (all days of week, # all monthes of year, etc)
-                    elif low == high:
+                    elif explicit_equal_range:
                         rng = list(
                             range(cls.RANGES[field_index][0], cls.RANGES[field_index][1] + 1, step)
                         )

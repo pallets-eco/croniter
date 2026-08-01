@@ -70,6 +70,43 @@ Bugfixes
      happens without a year field wherever the remaining value cannot occur:
      ``0 0 31/5 2 *`` is now day 31 of February.
 
+- Fix ``expand_from_start_time`` discarding the lower bound of every range. Re-basing
+  overwrote ``low`` outright instead of supplying the phase of the cycle, so any range
+  whose start was above the field minimum fired below its own start: ``* 8-17 * * *``
+  expanded to hours ``0-17``, ``* * * * MON-FRI`` included Sunday, and ``10-50/15``
+  expanded to minutes ``7,22,37`` from a start at minute ``7``. Over a sweep of 13,332
+  ``expand_from_start_time`` expansions, 10,571 contained at least one value outside
+  the range the expression declares; now none do. Re-basing still supplies the phase —
+  ``*/15`` and ``5/15`` are unchanged — but the phase is advanced to the first value
+  inside the declared range, and where no value of the phase fits, the expression is
+  honoured as written, so an expansion can never come out empty. [#255, @potiuk]
+
+  Two side effects of overwriting the bound are fixed with it: colliding ``low`` onto
+  ``high`` made an ordinary range read as an explicit equal range and expand to the
+  whole cycle (``* * 10-11/2 * *`` became every second day of the month), and re-basing
+  a wrapping range unwrapped it (``* * * * 6-0``, Saturday and Sunday, became every day
+  of the week).
+
+  .. warning::
+
+     **This changes most ``expand_from_start_time`` schedules.** 12,062 of the 13,332
+     expansions in the sweep differ; those that do not are the wildcard forms (``*``,
+     ``*/step``), which were already correct. Any explicitly written range or stepped
+     start is affected, and a schedule can fire less often than it used to — ``45/15``
+     goes from four fires an hour to one, which is what that expression already means
+     without the flag. No expansion gains a value: 10,089 of the differences are strict
+     subsets of what they replaced, and in all but three of the remaining 1,973 the old
+     expansion contained values the declared range never allowed. The three are the
+     month field with a step wider than the field, where the phase moves from January
+     to the correct month. No expansion became empty and no error status changed.
+
+     A re-phased range can also hold fewer periods than the one it replaces, even when
+     nothing was wrong with it: ``10-20/7`` is ``10,17`` by default but ``14`` alone
+     from a start at minute 7, because only one multiple of 7 in that phase falls
+     inside ``10-20``. That is inherent to re-phasing a step inside a bounded window.
+     Over 29,280 bounded-range cases the fire count drops in 8,691, never by more than
+     one period, and never to zero.
+
 Testing and Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 - Document what ``expand_from_start_time`` actually means — that it moves the phase of a
