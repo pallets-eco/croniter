@@ -39,13 +39,6 @@ Bugfixes
   not start at zero — take theirs from the field minimum, as day-of-month and month
   already do. [#254, @potiuk]
 
-  Note that ``_get_low_from_current_date_number`` reads the start time in UTC, so for a
-  timezone-aware ``start_time`` the phase is taken from the UTC hour, day, month and now
-  year rather than the local one. That is pre-existing — ``0 */5 * * *`` already phases
-  on the UTC hour — and is not addressed here, but the year field is where it is most
-  visible: a start of ``2025-01-01 05:00+13:00`` is ``2024`` in UTC, so the year phase
-  is a whole year off.
-
 Testing and Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 - Document what ``expand_from_start_time`` actually means — that it moves the phase of a
