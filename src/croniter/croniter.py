@@ -1319,8 +1319,15 @@ class croniter:
             return ((dt.month - 1) % step) + 1
         if field_index == DOW_FIELD:
             return (dt.isoweekday() % 7) % step
+        if field_index == SECOND_FIELD:
+            return dt.second % step
+        if field_index == YEAR_FIELD:
+            # Like day and month, the year field does not start at 0, so the phase is
+            # taken from the field minimum rather than from the value itself.
+            year_start = cls.RANGES[YEAR_FIELD][0]
+            return ((dt.year - year_start) % step) + year_start
 
-        raise ValueError("Can't get current date number for index larger than 4")
+        raise ValueError(f"Can't get current date number for field index {field_index}")
 
     @classmethod
     def is_valid(cls, expression, hash_id=None, encoding="UTF-8", second_at_beginning=False, strict=False, strict_year=None):

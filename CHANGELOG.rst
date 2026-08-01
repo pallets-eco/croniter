@@ -30,6 +30,21 @@ Bugfixes
   UTC round-trips it to the same wall clock and naive callers see no change at all —
   verified over 45,312 expansions with naive start times, none of which differ.
   [#256, @potiuk]
+- Fix ``expand_from_start_time`` raising ``ValueError: Can't get current date number for
+  index larger than 4`` for any range or step in the optional **seconds** or **years**
+  field. ``croniter("* * * * * */15", start, expand_from_start_time=True)`` aborted, and
+  because the exception came from outside the ``CroniterError`` hierarchy, code catching
+  ``CroniterError`` never saw it. Both fields now re-base like the five that already
+  worked: seconds take their phase from the start time's second, and years — which do
+  not start at zero — take theirs from the field minimum, as day-of-month and month
+  already do. [#254, @potiuk]
+
+  Note that ``_get_low_from_current_date_number`` reads the start time in UTC, so for a
+  timezone-aware ``start_time`` the phase is taken from the UTC hour, day, month and now
+  year rather than the local one. That is pre-existing — ``0 */5 * * *`` already phases
+  on the UTC hour — and is not addressed here, but the year field is where it is most
+  visible: a start of ``2025-01-01 05:00+13:00`` is ``2024`` in UTC, so the year phase
+  is a whole year off.
 
 Packaging
 ~~~~~~~~~
