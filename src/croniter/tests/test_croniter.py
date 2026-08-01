@@ -510,6 +510,25 @@ class CroniterTest(base.TestCase):
         self.assertEqual(croniter("1-1,59/15,55-59/2 * * * *").expanded[m], ["*"])
         self.assertEqual(croniter("* * * 1-1,12/6,11-12/1 *").expanded[mon], ["*"])
 
+    def test_step_from_field_max_optional_fields(self):
+        """The seconds and years fields are reached by this too.
+
+        Neither was in the original report, and they are where the change is
+        hardest to predict: the years field is the one place a schedule can go
+        from satisfiable to unsatisfiable, because a year does not come round
+        again.
+        """
+        sec, yr = 5, 6
+        self.assertEqual(croniter("* * * * * 59/15").expanded[sec], [59])
+        self.assertEqual(croniter("0 0 1 1 * * 2099/5").expanded[yr], [2099])
+        # A start below the field maximum is untouched, in these fields as in
+        # the others.
+        self.assertEqual(croniter("0 0 1 1 * * 2098/5").expanded[yr], [2098])
+        # "2099/1" used to expand to every year; it now means 2099 alone, so a
+        # schedule starting after 2099 has no next date at all.
+        with self.assertRaises(CroniterBadDateError):
+            croniter("0 0 1 1 * * 2099/1", datetime(2024, 7, 11)).get_next(datetime)
+
     def test_step_from_field_max_expand_from_start_time(self):
         """The fix has to hold under expand_from_start_time as well.
 
@@ -527,6 +546,11 @@ class CroniterTest(base.TestCase):
         self.assertEqual(efst("59/15 * * * *", m), [59])
         self.assertEqual(efst("* 23/6 * * *", h), [23])
         self.assertEqual(efst("* * * * SAT/2", dow), [6])
+        # The seconds field changes both value and status here: on main this
+        # raised ValueError out of _get_low_from_current_date_number, from
+        # outside the CroniterError hierarchy, so nothing catching
+        # CroniterError ever saw it.
+        self.assertEqual(efst("* * * * * 59/15", 5), [59])
         # Re-basing is untouched for every token that really does describe a cycle,
         # including stepped starts below the maximum. Whether an explicit lower bound
         # ought to survive re-basing at all is a separate question, deliberately not
