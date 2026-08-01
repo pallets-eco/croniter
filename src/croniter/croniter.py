@@ -1471,6 +1471,28 @@ class HashExpander:
     def match(self, efl, idx, expr, hash_id=None, **kw):
         return hash_expression_re.match(expr)
 
+    def _expand_divisor(self, idx, m, hash_id, range_begin, range_end):
+        """Hash a start offset into the first period, then step to range_end.
+
+        The offset is drawn from the first period, [range_begin, range_begin +
+        divisor - 1], but never past range_end: a divisor wider than the range has
+        only the range itself to draw from. And when the offset lands on range_end
+        the step cannot reach a second value, so the result is that single value --
+        emitting "{end}-{end}/{divisor}" instead would read as an explicit equal
+        range, which croniter expands to the whole field.
+        """
+        divisor = int(m["divisor"])
+        x = self.do(
+            idx,
+            hash_type=m["hash_type"],
+            hash_id=hash_id,
+            range_begin=range_begin,
+            range_end=min(range_begin + divisor - 1, range_end),
+        )
+        if x == range_end:
+            return str(x)
+        return f"{x}-{range_end}/{divisor}"
+
     def expand(self, efl, idx, expr, hash_id=None, match="", **kw):
         """Expand a hashed/random expression to its normal representation"""
         if match == "":
@@ -1491,14 +1513,9 @@ class HashExpander:
             if int(m["divisor"]) == 0:
                 raise CroniterBadCronError(f"Bad expression: {expr}")
 
-            x = self.do(
-                idx,
-                hash_type=m["hash_type"],
-                hash_id=hash_id,
-                range_begin=int(m["range_begin"]),
-                range_end=int(m["divisor"]) - 1 + int(m["range_begin"]),
+            return self._expand_divisor(
+                idx, m, hash_id, int(m["range_begin"]), int(m["range_end"])
             )
-            return f"{x}-{int(m['range_end'])}/{int(m['divisor'])}"
         if m["range_begin"] and m["range_end"]:
             # Example: H(0-29) -> 12
             return str(
@@ -1515,14 +1532,9 @@ class HashExpander:
             if int(m["divisor"]) == 0:
                 raise CroniterBadCronError(f"Bad expression: {expr}")
 
-            x = self.do(
-                idx,
-                hash_type=m["hash_type"],
-                hash_id=hash_id,
-                range_begin=self.cron.RANGES[idx][0],
-                range_end=int(m["divisor"]) - 1 + self.cron.RANGES[idx][0],
+            return self._expand_divisor(
+                idx, m, hash_id, self.cron.RANGES[idx][0], self.cron.RANGES[idx][1]
             )
-            return f"{x}-{self.cron.RANGES[idx][1]}/{int(m['divisor'])}"
 
         # Example: H -> 32
         return str(self.do(idx, hash_type=m["hash_type"], hash_id=hash_id))

@@ -7,6 +7,18 @@ Changelog
 Bugfixes
 ~~~~~~~~
 - Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted and the day-of-month can never occur in the selected month (e.g. ``0 0 31 2 0``). Under the Vixie OR semantics the unsatisfiable side now contributes no dates instead of aborting the whole expression, and ``match()`` and ``croniter_range()``, which swallow the error, no longer return silently wrong results for these expressions. [b245ab6, #243, @semx, @MildlyMeticulous]
+- Fix hashed divisions (``H/{divisor}``, ``H({begin}-{end})/{divisor}``) when the divisor
+  is as wide as, or wider than, the range it is drawn from. Three symptoms, one cause:
+  the offset was drawn from the first period without regard for where the range ends,
+  and the result was emitted as ``{offset}-{end}/{divisor}`` even when the step could
+  not reach a second value. ``H/60`` lost minute 59 and fired at minute 0 twice as
+  often as any other minute (59 distinct schedules over 20,000 hash ids, not 60);
+  ``H(50-59)/10`` fired six times an hour instead of once for the ids hashing to 59;
+  ``H(50-52)/10`` fired outside its own range for 7 hash buckets in 10, and ``H/100``
+  raised ``CroniterBadCronError`` for roughly a third of hash ids. The offset is now
+  clamped to the declared range and emitted as a single value when the step cannot
+  reach a second one. Divisors that fit their range keep their existing hashes, so no
+  schedule that was already correct moves. [#253, @potiuk]
 
 Packaging
 ~~~~~~~~~
