@@ -2528,6 +2528,79 @@ class CroniterTest(base.TestCase):
         fires = [itr.get_next(datetime) for _ in range(4)]
         self.assertIn(datetime(2024, 7, 21), fires)
 
+    def test_expand_from_start_time_uses_the_start_times_own_timezone(self):
+        """The phase comes from the start time's wall clock, not from its UTC form.
+
+        _get_low_from_current_date_number read the timestamp back in UTC, so a
+        timezone-aware start_time phased on the UTC hour, day and month rather than
+        on the local ones the caller wrote.
+        """
+        auckland = zoneinfo.ZoneInfo("Pacific/Auckland")
+        local = datetime(2025, 1, 1, 5, 0, tzinfo=auckland)
+        # The same instant is a different hour, day, month and year in UTC.
+        utc_view = local.astimezone(zoneinfo.ZoneInfo("UTC"))
+        self.assertEqual((utc_view.hour, utc_view.day, utc_view.month), (16, 31, 12))
+
+        def efst(expr, field, start):
+            return croniter(expr, start_time=start, expand_from_start_time=True).expanded[field]
+
+        # Local hour 5 gives phase 0; the UTC hour 16 would have given phase 1.
+        self.assertEqual(efst("0 */5 * * *", 1, local), [0, 5, 10, 15, 20])
+        # Local month 1 gives phase 1; the UTC month 12 would have given phase 2.
+        self.assertEqual(efst("0 0 1 */5 *", 3, local), [1, 6, 11])
+
+    def test_expand_from_start_time_naive_start_is_unaffected_by_timezone_handling(self):
+        """A naive start_time is converted as if it were UTC, so it round-trips."""
+
+        def efst(expr, field, start):
+            return croniter(expr, start_time=start, expand_from_start_time=True).expanded[field]
+
+        naive = datetime(2024, 7, 11, 10, 7)
+        self.assertEqual(efst("*/15 * * * *", 0, naive), [7, 22, 37, 52])
+        self.assertEqual(efst("0 */5 * * *", 1, naive), [0, 5, 10, 15, 20])
+        self.assertEqual(efst("0 0 */5 * *", 2, naive), [1, 6, 11, 16, 21, 26, 31])
+        # An explicitly-UTC start time must agree with the naive one.
+        aware = naive.replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
+        for expr, field in (("*/15 * * * *", 0), ("0 */5 * * *", 1), ("0 0 */5 * *", 2)):
+            self.assertEqual(efst(expr, field, aware), efst(expr, field, naive))
+
+    def test_expand_from_start_time_timezone_invariants(self):
+        """Property sweep: the phase must always match the local wall clock.
+
+        Across zones on both sides of UTC, and instants that straddle a date
+        boundary, every re-based field must take its phase from the field value the
+        caller would read off the start time, never from its UTC form.
+        """
+        zones = [
+            "UTC",
+            "Europe/Warsaw",
+            "America/New_York",
+            "Pacific/Auckland",
+            "Asia/Kolkata",
+            "Pacific/Kiritimati",
+        ]
+        instants = [
+            datetime(2025, 1, 1, 5, 0),
+            datetime(2024, 7, 11, 10, 7),
+            datetime(2024, 12, 31, 23, 30),
+        ]
+        cases = [
+            ("0 */5 * * *", 1, "hour"),
+            ("0 0 */5 * *", 2, "day"),
+            ("0 0 1 */5 *", 3, "month"),
+        ]
+        for zone in zones:
+            for instant in instants:
+                start = instant.replace(tzinfo=zoneinfo.ZoneInfo(zone))
+                for expr, field, attribute in cases:
+                    with self.subTest(zone=zone, instant=instant, expr=expr):
+                        got = croniter(
+                            expr, start_time=start, expand_from_start_time=True
+                        ).expanded[field]
+                        local = getattr(start, attribute)
+                        lo = croniter.RANGES[field][0]
+                        self.assertIn(((local - lo) % 5) + lo, got)
+
     def test_get_next_fails_with_expand_from_start_time_true(self):
         expanded_croniter = croniter("0 0 */5 * *", expand_from_start_time=True)
         self.assertRaises(

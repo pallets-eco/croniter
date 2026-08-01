@@ -330,6 +330,7 @@ class croniter:
             expr_format,
             hash_id=hash_id,
             from_timestamp=self.dst_start_time if self._expand_from_start_time else None,
+            from_timestamp_tz=self.tzinfo if self._expand_from_start_time else None,
             second_at_beginning=second_at_beginning,
         )
         self.fields = CRON_FIELDS[len(self.expanded)]
@@ -941,7 +942,7 @@ class croniter:
     DAYS_IN_MONTH = {1: 31, 2: 28, 3: 31, 4: 30, 5: 31, 6: 30, 7: 31, 8: 31, 9: 30, 10: 31, 11: 30, 12: 31}
 
     @classmethod
-    def _expand(cls, expr_format, hash_id=None, second_at_beginning=False, from_timestamp=None, strict=False, strict_year=None):
+    def _expand(cls, expr_format, hash_id=None, second_at_beginning=False, from_timestamp=None, from_timestamp_tz=None, strict=False, strict_year=None):
         # Split the expression in components, and normalize L -> l, MON -> mon,
         # etc. Keep expr_format untouched so we can use it in the exception
         # messages.
@@ -1106,7 +1107,7 @@ class croniter:
 
                     if from_timestamp:
                         low = cls._get_low_from_current_date_number(
-                            field_index, int(step), int(from_timestamp)
+                            field_index, int(step), int(from_timestamp), from_timestamp_tz
                         )
 
                     # Handle when the second bound of the range is in backtracking order:
@@ -1243,6 +1244,7 @@ class croniter:
         hash_id: Optional[Union[bytes, str]] = None,
         second_at_beginning: bool = False,
         from_timestamp: Optional[float] = None,
+        from_timestamp_tz: Optional[datetime.tzinfo] = None,
         strict: bool = False,
         strict_year: Optional[Union[int, list[int]]] = None,
     ) -> tuple[list[ExpandedExpression], dict[int, set[int]]]:
@@ -1290,6 +1292,7 @@ class croniter:
                 hash_id=hash_id,
                 second_at_beginning=second_at_beginning,
                 from_timestamp=from_timestamp,
+                from_timestamp_tz=from_timestamp_tz,
                 strict=strict,
                 strict_year=strict_year,
             )
@@ -1301,8 +1304,11 @@ class croniter:
             raise CroniterBadCronError(trace)
 
     @classmethod
-    def _get_low_from_current_date_number(cls, field_index, step, from_timestamp):
-        dt = datetime.datetime.fromtimestamp(from_timestamp, tz=UTC_DT)
+    def _get_low_from_current_date_number(cls, field_index, step, from_timestamp, tzinfo=None):
+        # Read the start time back in its own timezone. A naive start_time was
+        # converted to a timestamp as if it were UTC, so UTC round-trips it to the
+        # same wall clock and nothing changes for that case.
+        dt = datetime.datetime.fromtimestamp(from_timestamp, tz=tzinfo or UTC_DT)
         if field_index == MINUTE_FIELD:
             return dt.minute % step
         if field_index == HOUR_FIELD:

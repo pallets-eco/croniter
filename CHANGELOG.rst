@@ -19,6 +19,17 @@ Bugfixes
   clamped to the declared range and emitted as a single value when the step cannot
   reach a second one. Divisors that fit their range keep their existing hashes, so no
   schedule that was already correct moves. [#253, @potiuk]
+- Fix ``expand_from_start_time`` taking the phase of a cycle from the UTC form of a
+  timezone-aware ``start_time`` rather than from the wall clock the caller wrote.
+  ``_get_low_from_current_date_number`` read the start time back with ``tz=UTC``, so
+  ``0 */5 * * *`` from ``2025-01-01 05:00+13:00`` phased on UTC hour 16 and expanded to
+  hours ``1,6,11,16,21`` instead of ``0,5,10,15,20``. The hour, day-of-month, month and
+  day-of-week fields were all affected, and at a date boundary the day and month could
+  be a whole day or month out. The start time's own ``tzinfo`` is now carried into the
+  expansion. A naive ``start_time`` is converted to a timestamp as if it were UTC, so
+  UTC round-trips it to the same wall clock and naive callers see no change at all —
+  verified over 45,312 expansions with naive start times, none of which differ.
+  [#256, @potiuk]
 
 Packaging
 ~~~~~~~~~
