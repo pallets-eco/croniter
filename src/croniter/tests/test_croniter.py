@@ -2820,6 +2820,25 @@ class CroniterTest(base.TestCase):
                 ).expanded[0]
                 self.assertEqual(seconds, minutes)
 
+    def test_expand_from_start_time_issue_252(self):
+        """The three cases reported in #252, each staying inside its own range.
+
+        "20-40/5" started 18 minutes early and stopped 3 minutes short, and the
+        narrow window "0-1/2" widened to every other minute of the whole field.
+        """
+        start = datetime(2024, 7, 11, 10, 7)
+
+        def efst(expr):
+            return croniter(expr, start_time=start, expand_from_start_time=True).expanded[0]
+
+        self.assertEqual(efst("10-50/15 * * * *"), [22, 37])
+        self.assertEqual(efst("20-40/5 * * * *"), [22, 27, 32, 37])
+        self.assertEqual(efst("0-1/2 * * * *"), [1])
+        # The default expansion of each is unchanged, as #252 notes it should be.
+        self.assertEqual(croniter("10-50/15 * * * *", start).expanded[0], [10, 25, 40])
+        self.assertEqual(croniter("20-40/5 * * * *", start).expanded[0], [20, 25, 30, 35, 40])
+        self.assertEqual(croniter("0-1/2 * * * *", start).expanded[0], [0])
+
     def test_expand_from_start_time_respects_declared_bounds(self):
         """Re-basing supplies the phase of a cycle, never a bound outside the range.
 
