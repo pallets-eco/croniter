@@ -2600,6 +2600,78 @@ class CroniterTest(base.TestCase):
                         local = getattr(start, attribute)
                         lo = croniter.RANGES[field][0]
                         self.assertIn(((local - lo) % 5) + lo, got)
+    def test_expand_from_start_time_second(self):
+        fifteen_seconds_interval_pattern = "* * * * * */15"
+        ret1 = croniter(
+            fifteen_seconds_interval_pattern,
+            start_time=datetime(2024, 7, 11, 10, 7, 23),
+            expand_from_start_time=True,
+        ).get_next(datetime)
+        self.assertEqual(ret1, datetime(2024, 7, 11, 10, 7, 38))
+
+        ret2 = croniter(
+            fifteen_seconds_interval_pattern,
+            start_time=datetime(2024, 7, 11, 10, 7, 24),
+            expand_from_start_time=True,
+        ).get_next(datetime)
+        self.assertEqual(ret2, datetime(2024, 7, 11, 10, 7, 39))
+
+        ret3 = croniter(
+            fifteen_seconds_interval_pattern,
+            start_time=datetime(2024, 7, 11, 10, 7, 23),
+            expand_from_start_time=True,
+        ).get_prev(datetime)
+        self.assertEqual(ret3, datetime(2024, 7, 11, 10, 7, 8))
+
+        # Seconds take their phase from the start time's second, exactly as minutes
+        # take theirs from its minute.
+        self.assertEqual(
+            croniter(
+                fifteen_seconds_interval_pattern,
+                start_time=datetime(2024, 7, 11, 10, 7, 23),
+                expand_from_start_time=True,
+            ).expanded[5],
+            [8, 23, 38, 53],
+        )
+
+    def test_expand_from_start_time_year(self):
+        every_25_years_pattern = "0 0 1 1 * 0 */25"
+        ret1 = croniter(
+            every_25_years_pattern,
+            start_time=datetime(2024, 7, 11),
+            expand_from_start_time=True,
+        ).get_next(datetime)
+        self.assertEqual(ret1, datetime(2049, 1, 1))
+
+        ret2 = croniter(
+            every_25_years_pattern,
+            start_time=datetime(2024, 7, 11),
+            expand_from_start_time=True,
+        ).get_prev(datetime)
+        self.assertEqual(ret2, datetime(2024, 1, 1))
+
+        # The year field does not start at zero, so its phase is taken from the field
+        # minimum, as day-of-month and month already do.
+        self.assertEqual(
+            croniter(
+                every_25_years_pattern,
+                start_time=datetime(2024, 7, 11),
+                expand_from_start_time=True,
+            ).expanded[6],
+            [1974, 1999, 2024, 2049, 2074, 2099],
+        )
+
+    def test_expand_from_start_time_second_and_year_no_longer_raise(self):
+        """Both fields used to raise a bare ValueError, outside CroniterError.
+
+        _get_low_from_current_date_number only handled field indices 0-4, so any
+        range or step in the seconds or years field aborted with a ValueError that
+        code catching CroniterError never saw.
+        """
+        start = datetime(2024, 7, 11, 10, 7, 23)
+        for expr in ("* * * * * */15", "* * * * * 10-20", "0 0 1 1 * 0 */25"):
+            with self.subTest(expr=expr):
+                croniter(expr, start_time=start, expand_from_start_time=True).get_next(datetime)
 
     def test_get_next_fails_with_expand_from_start_time_true(self):
         expanded_croniter = croniter("0 0 */5 * *", expand_from_start_time=True)
