@@ -155,6 +155,49 @@ class CroniterHashTest(CroniterHashBase):
         self.assertEqual(sorted({e[0] for e in expansions}), list(range(60)))
         self.assertEqual({len(e) for e in expansions}, {1})
 
+    def test_hash_division_invariants(self):
+        """Property sweep over every field with a divisor at least as wide as it.
+
+        Three properties, each of which one of the bugs above broke: a wide divisor
+        yields exactly one value per hash id; that value lies inside the field; and
+        across enough ids every value in the field is reachable. "H/60" satisfied the
+        first two but only reached 59 of the 60 minutes.
+        """
+        for expr, pos, lo, hi in [
+            ("H/60 * * * *", 0, 0, 59),
+            ("* H/24 * * *", 1, 0, 23),
+            ("* * H/31 * *", 2, 1, 31),
+            ("* * * H/12 *", 3, 1, 12),
+            ("* * * * H/7", 4, 0, 6),
+            ("* * * * * H/60", 5, 0, 59),
+            ("0 0 1 1 * 0 H/130", 6, 1970, 2099),
+        ]:
+            with self.subTest(expr=expr):
+                seen = set()
+                for i in range(1200):
+                    got = croniter(expr, hash_id=str(i)).expanded[pos]
+                    self.assertEqual(len(got), 1, f"id={i} expanded to {got}")
+                    self.assertTrue(lo <= got[0] <= hi, f"id={i} produced {got[0]}")
+                    seen.add(got[0])
+                self.assertEqual(sorted(seen), list(range(lo, hi + 1)))
+
+    def test_hash_range_division_never_escapes_its_range(self):
+        """A divisor wider than its range must still land inside the range.
+
+        The offset was drawn from the first period regardless of where the range
+        ends, so "H(50-52)/10" drew from 50-59 and fired outside 50-52 for most
+        hash ids.
+        """
+        for begin, end, divisor in [(50, 52, 10), (5, 6, 30), (1, 3, 60), (10, 11, 2), (0, 1, 59)]:
+            expr = f"H({begin}-{end})/{divisor} * * * *"
+            with self.subTest(expr=expr):
+                seen = set()
+                for i in range(300):
+                    for value in croniter(expr, hash_id=str(i)).expanded[0]:
+                        self.assertTrue(begin <= value <= end, f"id={i} produced {value}")
+                        seen.add(value)
+                self.assertEqual(sorted(seen), list(range(begin, end + 1)))
+
     def test_hash_invalid_range(self):
         """Test validation logic for range_begin and range_end values"""
         try:
