@@ -4,6 +4,15 @@ Changelog
 6.2.5 (unreleased)
 ------------------
 
+Bugfixes
+~~~~~~~~
+- Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted and the day-of-month can never occur in the selected month (e.g. ``0 0 31 2 0``). Under the Vixie OR semantics the unsatisfiable side now contributes no dates instead of aborting the whole expression, and ``match()`` and ``croniter_range()``, which swallow the error, no longer return silently wrong results for these expressions. [b245ab6, #243, @semx, @MildlyMeticulous]
+
+Packaging
+~~~~~~~~~
+- Bump pinned GitHub Actions via dependabot. [6e69553, #247; 3c6ce9b, #251]
+- Bump pinned build dependencies (``hatchling``) via dependabot. [70564f2, #245]
+
 
 6.2.4 (2026-07-10)
 ------------------
