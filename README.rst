@@ -291,7 +291,31 @@ To ignore second repetition, simply set second to ``0`` or any other const::
 Support for start_time shifts
 ==============================
 See https://github.com/pallets-eco/croniter/pull/76,
-You can set start_time=, then expand_from_start_time=True for your generations to be computed from start_time instead of calendar days::
+You can set start_time=, then expand_from_start_time=True for your generations to be computed from start_time instead of calendar days.
+
+**What the flag means.** ``expand_from_start_time`` changes where a *cycle*
+starts. For a field written with a step, the phase of that cycle is taken from
+the corresponding field of ``start_time`` instead of from the field's own
+minimum::
+
+    >>> croniter('*/15 * * * *', datetime(2024, 7, 11, 10, 7), expand_from_start_time=True).expanded[0]
+    [7, 22, 37, 52]
+    >>> croniter('*/15 * * * *', datetime(2024, 7, 11, 10, 7)).expanded[0]
+    [0, 15, 30, 45]
+
+Every field re-bases, including the optional seconds and years fields. Seconds
+take their phase from the start time's second. Day-of-month, month and year do
+not start at zero, so they take theirs from the field minimum rather than from
+the value itself.
+
+The phase is read from ``start_time`` in **its own timezone**, so a
+timezone-aware start time phases on the local wall clock, not on its UTC form::
+
+    >>> start = datetime(2024, 7, 11, 10, 7, tzinfo=ZoneInfo('Pacific/Auckland'))  # 22:07 UTC
+    >>> croniter('0 */5 * * *', start, expand_from_start_time=True).expanded[1]
+    [0, 5, 10, 15, 20]
+
+A worked example::
 
     >>> from pprint import pprint
     >>> iter = croniter('0 0 */7 * *', start_time=datetime(2024, 7, 11), expand_from_start_time=True);pprint([iter.get_next(datetime) for a in range(10)])
@@ -448,6 +472,18 @@ Note that as a deviation from cron standard, croniter is somehow laxist with ran
     - ``Wed-Sun``: Wednesday to Saturday, Sunday
 
 Please note that if a /step is given, it will be respected.
+
+A range whose two bounds are equal is a further deviation: it means the **whole
+cycle**, not the single value it names. This applies in every field::
+
+    >>> croniter('0 0 * JAN-JAN *').expanded[3]
+    ['*']
+    >>> croniter('0 0 * * SUN-SUN').expanded[4]
+    ['*']
+
+So ``Jan-Jan`` is every month, not January. A step is applied across that whole
+cycle, so ``1-1/3`` in the month field is January, April, July and October. To
+name a single value, write it on its own — ``1`` or ``JAN``.
 
 Note about Sunday
 =================
