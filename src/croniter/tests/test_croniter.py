@@ -546,10 +546,10 @@ class CroniterTest(base.TestCase):
         self.assertEqual(efst("59/15 * * * *", m), [59])
         self.assertEqual(efst("* 23/6 * * *", h), [23])
         self.assertEqual(efst("* * * * SAT/2", dow), [6])
-        # The seconds field changes both value and status here: on main this
-        # raised ValueError out of _get_low_from_current_date_number, from
-        # outside the CroniterError hierarchy, so nothing catching
-        # CroniterError ever saw it.
+        # Before #254 this raised ValueError out of
+        # _get_low_from_current_date_number, from outside the CroniterError
+        # hierarchy, so nothing catching CroniterError ever saw it. That fix made
+        # the field reachable; this pins the value it reaches.
         self.assertEqual(efst("* * * * * 59/15", 5), [59])
         # Re-basing is untouched for every token that really does describe a cycle,
         # including stepped starts below the maximum. Whether an explicit lower bound
