@@ -62,18 +62,13 @@ Bugfixes
      (``*`` or ``*/1``) for "every". **Before upgrading, audit for any field whose
      value begins with that field's maximum followed by a slash.**
 
-     Two consequences worth stating separately:
-
-     - A ``{max}/{step}`` expression can now be **unsatisfiable** rather than merely
-       different. ``0 0 1 1 * * 2099/1`` previously expanded the year field to every
-       year; it now means the year 2099 only, so iterating from a later start time
-       raises ``CroniterBadDateError`` instead of returning a date.
-     - In ``expand_from_start_time`` mode, ``{max}/{step}`` in the **seconds or
-       years** field previously raised ``ValueError: Can't get current date number
-       for index larger than 4`` and now returns a result. That exception was raised
-       from outside the ``CroniterError`` hierarchy, so code catching
-       ``CroniterError`` never saw it. Starts below the maximum in those two fields
-       still raise it; that is pre-existing and untouched here.
+     One consequence is worth stating separately: a ``{max}/{step}`` expression can
+     now be **unsatisfiable** rather than merely different, because it no longer
+     covers the whole field. ``0 0 1 1 * * 2099/1`` previously expanded the year
+     field to every year and now means 2099 alone, so iterating from a later start
+     time raises ``CroniterBadDateError`` instead of returning a date. The same
+     happens without a year field wherever the remaining value cannot occur:
+     ``0 0 31/5 2 *`` is now day 31 of February.
 
 Testing and Documentation
 ~~~~~~~~~~~~~~~~~~~~~~~~~
