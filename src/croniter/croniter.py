@@ -1055,12 +1055,19 @@ class croniter:
                 )
                 m = step_search_re.search(t)
 
+                # "{start}/{step}" is its own shape, not a range. It is normalized
+                # below to "{start}-{max}/{step}" so that one regex parses both, but
+                # the two must not be conflated afterwards: "Jan-Jan" is an explicit
+                # equal range that croniter deliberately expands to the whole cycle,
+                # whereas "DEC/3" is a start with a step and denotes just [DEC].
+                start_with_step = False
                 if not m:
                     # Before matching step_search_re,
                     # normalize "{start}/{step}" to "{start}-{max}/{step}".
                     # Example: in the minute field, "10/5" normalizes to "10-59/5"
                     t = re.sub(r"^(.+)\/(.+)$", r"\1-%d/\2" % (cls.RANGES[field_index][1]), str(e))
                     m = step_search_re.search(t)
+                    start_with_step = bool(m)
 
                 if m:
                     # early abort if low/high are out of bounds
@@ -1105,14 +1112,37 @@ class croniter:
                     ):
                         raise CroniterBadCronError(f"{expr_format} is out of bands")
 
-                    if from_timestamp:
+                    # "{start}/{step}" normalizes to "{start}-{max}/{step}", so when
+                    # the start IS the field maximum the two bounds collide and the
+                    # token becomes indistinguishable from an explicitly written equal
+                    # range. That is the whole bug: "59/15" arrived at the ``low ==
+                    # high`` branch below -- which exists for "Jan-Jan" and expands to
+                    # the whole cycle -- and so fired at :00/:15/:30/:45 instead of
+                    # :59. Recognising the collision here is what keeps the two apart.
+                    #
+                    # Deliberately ``low == high`` and not the wider ``low + step >
+                    # high``. Both fix the reported bug, but the wider form also
+                    # suppresses the re-base below for starts that are not at the
+                    # maximum, silently changing ~365 additional
+                    # ``expand_from_start_time`` schedules that were never broken.
+                    # That is a separate question about what an explicit lower bound
+                    # should mean under that flag, and it is not this fix's to answer.
+                    start_at_field_max = start_with_step and low == high
+
+                    # ``from_timestamp`` re-bases the start of a *cycle* on the start
+                    # time. A single point has no cycle to re-base, and rewriting its
+                    # bound here would leave the bug reachable in
+                    # ``expand_from_start_time`` mode while looking fixed by default.
+                    if from_timestamp and not start_at_field_max:
                         low = cls._get_low_from_current_date_number(
                             field_index, int(step), int(from_timestamp), from_timestamp_tz
                         )
 
                     # Handle when the second bound of the range is in backtracking order:
                     # eg: X-Sun or X-7 (Sat-Sun) in DOW, or X-Jan (Apr-Jan) in MONTH
-                    if low > high:
+                    if start_at_field_max:
+                        rng = [low]
+                    elif low > high:
                         whole_field_range = list(
                             range(cls.RANGES[field_index][0], cls.RANGES[field_index][1] + 1, 1)
                         )
