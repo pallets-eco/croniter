@@ -106,6 +106,98 @@ class CroniterHashTest(CroniterHashBase):
         """Test a hashed range + division definition"""
         self._test_iter("H(30-59)/10 H * * *", datetime(2020, 1, 1, 11, 30), timedelta(minutes=10))
 
+    def test_hash_division_unchanged_when_divisor_fits(self):
+        """Test that a divisor smaller than its range keeps its existing hash"""
+        self.assertEqual(croniter("H/15 * * * *", hash_id="2").expanded[0], [7, 22, 37, 52])
+        self.assertEqual(
+            croniter("H(30-59)/10 * * * *", hash_id="hello").expanded[0], [30, 40, 50]
+        )
+
+    def test_hash_division_offset_at_field_max(self):
+        """Test a division whose hashed offset lands on the field maximum
+
+        "H/60" is one hashed minute an hour, but the offset used to be emitted as
+        "59-59/60" -- an explicit equal range, which croniter reads as the whole
+        field. Minute 59 was lost and minute 0 came up twice as often as any other.
+        """
+        self.assertEqual(croniter("H/60 * * * *", hash_id="79").expanded[0], [59])
+        expansions = [croniter("H/60 * * * *", hash_id=str(i)).expanded[0] for i in range(300)]
+        self.assertEqual(sorted({e[0] for e in expansions}), list(range(60)))
+        self.assertEqual({len(e) for e in expansions}, {1})
+
+    def test_hash_range_division_offset_at_range_end(self):
+        """Test a hashed range + division whose offset lands on the range end"""
+        self.assertEqual(croniter("H(50-59)/10 * * * *", hash_id="0").expanded[0], [59])
+        expansions = [
+            croniter("H(50-59)/10 * * * *", hash_id=str(i)).expanded[0] for i in range(300)
+        ]
+        self.assertEqual(sorted({e[0] for e in expansions}), list(range(50, 60)))
+        self.assertEqual({len(e) for e in expansions}, {1})
+
+    def test_hash_divisor_wider_than_range(self):
+        """Test a divisor wider than the range it is drawn from
+
+        The offset is drawn from the first period, so it used to be able to land
+        outside the range the expression declares.
+        """
+        self.assertEqual(croniter("H(50-52)/10 * * * *", hash_id="0").expanded[0], [52])
+        self.assertEqual(croniter("H(50-52)/10 * * * *", hash_id="hello").expanded[0], [51])
+        expansions = [
+            croniter("H(50-52)/10 * * * *", hash_id=str(i)).expanded[0] for i in range(300)
+        ]
+        self.assertEqual(sorted({e[0] for e in expansions}), [50, 51, 52])
+        self.assertEqual({len(e) for e in expansions}, {1})
+
+    def test_hash_divisor_wider_than_field(self):
+        """Test a divisor wider than the field, which used to fail for some hashes"""
+        self.assertEqual(croniter("H/100 * * * *", hash_id="79").expanded[0], [59])
+        expansions = [croniter("H/100 * * * *", hash_id=str(i)).expanded[0] for i in range(300)]
+        self.assertEqual(sorted({e[0] for e in expansions}), list(range(60)))
+        self.assertEqual({len(e) for e in expansions}, {1})
+
+    def test_hash_division_invariants(self):
+        """Property sweep over every field with a divisor at least as wide as it.
+
+        Three properties, each of which one of the bugs above broke: a wide divisor
+        yields exactly one value per hash id; that value lies inside the field; and
+        across enough ids every value in the field is reachable. "H/60" satisfied the
+        first two but only reached 59 of the 60 minutes.
+        """
+        for expr, pos, lo, hi in [
+            ("H/60 * * * *", 0, 0, 59),
+            ("* H/24 * * *", 1, 0, 23),
+            ("* * H/31 * *", 2, 1, 31),
+            ("* * * H/12 *", 3, 1, 12),
+            ("* * * * H/7", 4, 0, 6),
+            ("* * * * * H/60", 5, 0, 59),
+            ("0 0 1 1 * 0 H/130", 6, 1970, 2099),
+        ]:
+            with self.subTest(expr=expr):
+                seen = set()
+                for i in range(1200):
+                    got = croniter(expr, hash_id=str(i)).expanded[pos]
+                    self.assertEqual(len(got), 1, f"id={i} expanded to {got}")
+                    self.assertTrue(lo <= got[0] <= hi, f"id={i} produced {got[0]}")
+                    seen.add(got[0])
+                self.assertEqual(sorted(seen), list(range(lo, hi + 1)))
+
+    def test_hash_range_division_never_escapes_its_range(self):
+        """A divisor wider than its range must still land inside the range.
+
+        The offset was drawn from the first period regardless of where the range
+        ends, so "H(50-52)/10" drew from 50-59 and fired outside 50-52 for most
+        hash ids.
+        """
+        for begin, end, divisor in [(50, 52, 10), (5, 6, 30), (1, 3, 60), (10, 11, 2), (0, 1, 59)]:
+            expr = f"H({begin}-{end})/{divisor} * * * *"
+            with self.subTest(expr=expr):
+                seen = set()
+                for i in range(300):
+                    for value in croniter(expr, hash_id=str(i)).expanded[0]:
+                        self.assertTrue(begin <= value <= end, f"id={i} produced {value}")
+                        seen.add(value)
+                self.assertEqual(sorted(seen), list(range(begin, end + 1)))
+
     def test_hash_invalid_range(self):
         """Test validation logic for range_begin and range_end values"""
         try:
