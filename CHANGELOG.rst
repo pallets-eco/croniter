@@ -46,6 +46,15 @@ Bugfixes
   visible: a start of ``2025-01-01 05:00+13:00`` is ``2024`` in UTC, so the year phase
   is a whole year off.
 
+Testing and Documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+- Document what ``expand_from_start_time`` actually means — that it moves the phase of a
+  cycle and not the values a field may take, that every field re-bases including the
+  optional seconds and years, and that the phase is read in the start time's own
+  timezone. Also document that a range with two equal bounds (``Jan-Jan``, ``Sun-Sun``)
+  means the whole cycle rather than the value it names, which was undocumented and is
+  the rule behind several of the bugs fixed in this release. [#257, @potiuk]
+
 Packaging
 ~~~~~~~~~
 - Bump pinned GitHub Actions via dependabot. [6e69553, #247; 3c6ce9b, #251]
