@@ -1115,31 +1115,39 @@ class croniter:
                     # "{start}/{step}" normalizes to "{start}-{max}/{step}", so when
                     # the start IS the field maximum the two bounds collide and the
                     # token becomes indistinguishable from an explicitly written equal
-                    # range. That is the whole bug: "59/15" arrived at the ``low ==
-                    # high`` branch below -- which exists for "Jan-Jan" and expands to
-                    # the whole cycle -- and so fired at :00/:15/:30/:45 instead of
-                    # :59. Recognising the collision here is what keeps the two apart.
+                    # range. That is the whole bug: "59/15" was read the way "Jan-Jan"
+                    # is -- the whole cycle -- and so fired at :00/:15/:30/:45 instead
+                    # of :59. Recognising the collision here is what keeps the two
+                    # apart, both in the widening just below and in the range built
+                    # further down.
                     #
                     # Deliberately ``low == high`` and not the wider ``low + step >
-                    # high``. Both fix the reported bug, but the wider form also
-                    # suppresses the re-base below for starts that are not at the
-                    # maximum, silently changing ~365 additional
-                    # ``expand_from_start_time`` schedules that were never broken.
-                    # That is a separate question about what an explicit lower bound
-                    # should mean under that flag, and it is not this fix's to answer.
+                    # high``. Only the collision is a false equal range: a token whose
+                    # step merely overshoots its range -- "50-51/15" -- still describes
+                    # a cycle, and re-basing must stay free to supply its phase.
                     start_at_field_max = start_with_step and low == high
 
-                    # Only an equal range that was *written* as one means the whole
-                    # cycle. Both the "{start}/{step}" normalization above and the
-                    # re-basing below can collide the two bounds as a side effect, and
-                    # neither is the user saying "Jan-Jan".
-                    explicit_equal_range = low == high and not start_with_step
+                    # An equal range that was *written* as one -- "Jan-Jan", "Sun-Sun"
+                    # -- means the whole cycle, so widen it to the field's own bounds
+                    # here rather than in a branch further down. Widening it before
+                    # re-basing is what makes the two spellings of one schedule agree:
+                    # "1-1/3" and "*/3" are the same expression, and both now take the
+                    # phase of their cycle from ``start_time``.
+                    #
+                    # ``start_with_step`` is load-bearing: "{start}/{step}" normalizes
+                    # to "{start}-{max}/{step}", so at the field maximum its bounds
+                    # collide without the user having written an equal range at all.
+                    # That is #246's bug, and widening "59/15" back to the whole field
+                    # here would reintroduce it.
+                    if low == high and not start_with_step:
+                        low, high = cls.RANGES[field_index]
 
                     # ``from_timestamp`` re-bases the start of a *cycle* on the start
-                    # time. A single point has no cycle to re-base, and rewriting its
-                    # bound here would leave the bug reachable in
-                    # ``expand_from_start_time`` mode while looking fixed by default.
-                    if from_timestamp and not start_at_field_max and low <= high:
+                    # time. A single point has no cycle to re-base: "59/15" is minute
+                    # 59, not a cycle starting there. (The bounds test below rejects it
+                    # anyway, since the only phase inside ``low == high`` is ``low``
+                    # itself; skipping the work here says so outright.)
+                    if from_timestamp is not None and not start_at_field_max:
                         # Re-basing supplies the *phase* of the cycle, not its bounds:
                         # take the first value of that phase lying inside the range the
                         # expression declares. From a start at minute 7, "10-50/15" is
@@ -1149,14 +1157,18 @@ class croniter:
                         # a re-phased range can hold fewer periods than the one it
                         # replaces -- "10-20/7" is 10,17 by default but 14 alone from
                         # a start at minute 7 -- which is inherent to re-phasing inside
-                        # a bounded window, not a value being dropped. A wrapping range
-                        # (Apr-Jan, Sat-Sun) has no single in-range phase to pick, so it
-                        # is left alone rather than silently unwrapped.
+                        # a bounded window, not a value being dropped.
                         phase = cls._get_low_from_current_date_number(
                             field_index, int(step), int(from_timestamp), from_timestamp_tz
                         )
                         if phase < low:
                             phase += -(-(low - phase) // step) * step
+                        # This one test is what keeps re-basing honest, and it covers
+                        # the wrapping ranges (Apr-Jan, Sat-Sun) too: there ``high``
+                        # lies below ``low``, no phase can satisfy it, and the range is
+                        # left as written rather than silently unwrapped. Its lower
+                        # half restates what the advance above already guarantees; it
+                        # is written out so the test reads as the range check it is.
                         if low <= phase <= high:
                             low = phase
 
@@ -1181,12 +1193,6 @@ class croniter:
                             ):
                                 to_skip = step - already_skipped
                         rng += list(range(cls.RANGES[field_index][0] + to_skip, high + 1, step))
-                    # if we include a range type: Jan-Jan, or Sun-Sun,
-                    #  it means the whole cycle (all days of week, # all monthes of year, etc)
-                    elif explicit_equal_range:
-                        rng = list(
-                            range(cls.RANGES[field_index][0], cls.RANGES[field_index][1] + 1, step)
-                        )
                     else:
                         try:
                             rng = list(range(low, high + 1, step))

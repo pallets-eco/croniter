@@ -2880,6 +2880,42 @@ class CroniterTest(base.TestCase):
         self.assertEqual(croniter("10-20/7 * * * *", start_time=start).expanded[m], [10, 17])
         self.assertEqual(efst("10-20/7 * * * *", m), [14])
 
+    def test_expand_from_start_time_respects_declared_bounds_in_seconds_and_years(self):
+        """The optional fields advance the phase like the five that always could.
+
+        #254 is what made the seconds and years fields reachable here at all -- they
+        raised ValueError before it -- and the years field is where the correction is
+        largest: "2020-2040/3" used to expand from 1970, eighteen years below its own
+        lower bound.
+        """
+        seconds, years = 5, 6
+
+        def efst(expr, start, field):
+            return croniter(expr, start_time=start, expand_from_start_time=True).expanded[field]
+
+        start = datetime(2024, 7, 11, 10, 7, 23)
+        # Phase 23 % 15 = 8, below the declared start, so it advances to 23.
+        self.assertEqual(efst("* * * * * 10-50/15", start, seconds), [23, 38])
+        self.assertEqual(croniter("* * * * * 10-50/15", start).expanded[seconds], [10, 25, 40])
+        self.assertEqual(efst("* * * * * 20-40/5", start, seconds), [23, 28, 33, 38])
+        # A second below the range keeps the expression as written rather than firing
+        # early, exactly as in the five mandatory fields.
+        self.assertEqual(efst("* * * * * 50-51/15", start, seconds), [50])
+
+        start = datetime(2024, 7, 11)
+        # The years phase is taken from the field minimum, so it starts at 1970 and is
+        # advanced up into the range: 1970 + ceil((2020 - 1970) / 3) * 3 = 2021.
+        self.assertEqual(
+            efst("0 0 1 1 * 0 2020-2040/3", start, years),
+            [2021, 2024, 2027, 2030, 2033, 2036, 2039],
+        )
+        self.assertEqual(
+            croniter("0 0 1 1 * 0 2020-2040/3", start).expanded[years],
+            [2020, 2023, 2026, 2029, 2032, 2035, 2038],
+        )
+        self.assertEqual(efst("0 0 1 1 * 0 2025-2026/5", start, years), [2025])
+        self.assertEqual(efst("0 0 1 1 * 0 2020-2040", start, years), list(range(2020, 2041)))
+
     def test_expand_from_start_time_does_not_change_a_range_into_another_kind(self):
         """Re-basing must not collide or unwrap the bounds it re-bases.
 
@@ -2893,10 +2929,24 @@ class CroniterTest(base.TestCase):
             return croniter(expr, start_time=start, expand_from_start_time=True).expanded[field]
 
         m, dom, mon, dow = 0, 2, 3, 4
-        # An explicitly written equal range still means the whole cycle, as by default.
+        # An explicitly written equal range still means the whole cycle. A step
+        # written on it is a cycle like any other, so it takes its phase from the
+        # start time -- the same expansion as the wildcard spelling of the schedule.
         self.assertEqual(efst("5-5 * * * *", m), ["*"])
-        self.assertEqual(efst("59-59/15 * * * *", m), [0, 15, 30, 45])
+        self.assertEqual(efst("59-59/15 * * * *", m), [7, 22, 37, 52])
+        self.assertEqual(efst("59-59/15 * * * *", m), efst("*/15 * * * *", m))
+        self.assertEqual(croniter("59-59/15 * * * *", start).expanded[m], [0, 15, 30, 45])
         self.assertEqual(efst("* * * 12-12 *", mon), ["*"])
+        # The month field, where README documents "1-1/3" as Jan/Apr/Jul/Oct.
+        self.assertEqual(
+            croniter(
+                "0 0 1 1-1/3 *", start_time=datetime(2024, 2, 15), expand_from_start_time=True
+            ).expanded[mon],
+            [2, 5, 8, 11],
+        )
+        self.assertEqual(
+            croniter("0 0 1 1-1/3 *", datetime(2024, 2, 15)).expanded[mon], [1, 4, 7, 10]
+        )
         # A range whose phase lands on its own upper bound is not an equal range.
         self.assertEqual(efst("* * 10-11/2 * *", dom), [11])
         self.assertEqual(
@@ -2907,6 +2957,25 @@ class CroniterTest(base.TestCase):
         )
         # A wrapping range stays wrapped.
         self.assertEqual(efst("* * * * 6-0", dow), [0, 6])
+
+    def test_expand_from_start_time_at_the_unix_epoch(self):
+        """A start time of exactly the epoch re-bases like any other.
+
+        The start time reaches the expansion as a timestamp, which is 0.0 here, and
+        the truthiness test that gated re-basing skipped that one instant: the same
+        expression one second later re-based, and this one did not.
+        """
+        epoch = datetime(1970, 1, 1)
+        dow = 4
+
+        def efst(expr, start, field):
+            return croniter(expr, start_time=start, expand_from_start_time=True).expanded[field]
+
+        # The epoch is a Thursday, so the day-of-week phase is 4 % step.
+        self.assertEqual(efst("0 0 * * 2-6/3", epoch, dow), [4])
+        self.assertEqual(efst("0 0 * * 2-6/3", epoch + timedelta(seconds=1), dow), [4])
+        self.assertEqual(croniter("0 0 * * 2-6/3", epoch).expanded[dow], [2, 5])
+        self.assertEqual(efst("0 0 * * */3", epoch, dow), [1, 4])
 
     def test_expand_from_start_time_never_leaves_the_declared_range(self):
         """Property sweep: a re-based expansion may never fall outside its bounds.
@@ -2956,11 +3025,17 @@ class CroniterTest(base.TestCase):
                         self.assertLessEqual(len(rebased), len(plain))
 
     def test_expand_from_start_time_fuzz(self):
-        """Seeded sweep over random expressions: values stay in range, none empty."""
+        """Seeded sweep over random expressions: values stay in range, none empty.
+
+        The optional seconds and years fields are swept alongside the five mandatory
+        ones -- they re-base by the same arithmetic, and only #254 made them reachable.
+        """
         rnd = random.Random(20260801)
         for _ in range(500):
             parts = []
-            for index in range(5):
+            # Five fields always, then the optional seconds and years fields, which are
+            # written after them: "{m} {h} {dom} {mon} {dow} [{sec} [{year}]]".
+            for index in list(range(5)) + [5, 6][: rnd.randint(0, 2)]:
                 lo, hi = croniter.RANGES[index]
                 if rnd.random() < 0.5:
                     parts.append("*")
