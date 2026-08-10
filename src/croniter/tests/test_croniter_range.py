@@ -226,6 +226,58 @@ class CroniterRangeTest(base.TestCase):
             [(2, 1), (2, 8), (2, 15), (2, 22)],
         )
 
+    def test_fold_does_not_truncate_the_range(self):
+        """Both bounds sit in the repeated hour, so the wall clock runs backwards."""
+        tz = zoneinfo.ZoneInfo("Australia/Sydney")
+        start = datetime(2019, 4, 7, 2, 22, tzinfo=tz)  # +11:00, UTC 15:22
+        stop = datetime(2019, 4, 7, 2, 26, tzinfo=tz, fold=1)  # +10:00, UTC 16:26
+        fwd = list(croniter_range(start, stop, "*/13 * * * *"))
+        self.assertEqual(
+            [d.isoformat() for d in fwd],
+            [
+                "2019-04-07T02:26:00+11:00",
+                "2019-04-07T02:39:00+11:00",
+                "2019-04-07T02:52:00+11:00",
+                "2019-04-07T02:00:00+10:00",
+                "2019-04-07T02:13:00+10:00",
+                "2019-04-07T02:26:00+10:00",
+            ],
+        )
+        excl = list(croniter_range(start, stop, "*/13 * * * *", exclude_ends=True))
+        self.assertEqual([d.isoformat() for d in excl], [d.isoformat() for d in fwd[:-1]])
+
+    def test_offset_change_does_not_yield_outside_the_range(self):
+        """Bounds straddling spring-forward carry different offsets; fold is not involved."""
+        tz = zoneinfo.ZoneInfo("Europe/London")
+        lower = datetime(2018, 3, 25, 1, 15, tzinfo=tz)  # GMT, UTC 01:15
+        upper = datetime(2018, 3, 25, 5, 0, tzinfo=tz)  # BST, UTC 04:00
+        rev = list(croniter_range(upper, lower, "0 * * * *"))
+        self.assertEqual(
+            [d.isoformat() for d in rev],
+            [
+                "2018-03-25T05:00:00+01:00",
+                "2018-03-25T04:00:00+01:00",
+                "2018-03-25T03:00:00+01:00",
+            ],
+        )
+
+    def test_direction_follows_the_instants_not_the_wall_clock(self):
+        """stop is after start in real time but earlier on the wall clock."""
+        tz = zoneinfo.ZoneInfo("Australia/Sydney")
+        start = datetime(2019, 4, 7, 2, 39, tzinfo=tz)  # +11:00, UTC 15:39
+        stop = datetime(2019, 4, 7, 2, 26, tzinfo=tz, fold=1)  # +10:00, UTC 16:26
+        fwd = list(croniter_range(start, stop, "*/13 * * * *"))
+        self.assertEqual(
+            [d.isoformat() for d in fwd],
+            [
+                "2019-04-07T02:39:00+11:00",
+                "2019-04-07T02:52:00+11:00",
+                "2019-04-07T02:00:00+10:00",
+                "2019-04-07T02:13:00+10:00",
+                "2019-04-07T02:26:00+10:00",
+            ],
+        )
+
     def test_year_range(self):
         start = datetime(2010, 1, 1)
         stop = datetime(2030, 1, 1)
