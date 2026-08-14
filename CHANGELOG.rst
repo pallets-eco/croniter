@@ -6,6 +6,22 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Fix ``croniter_range`` deciding both its direction and its stop condition from
+  wall-clock readings rather than instants. Comparing two aware datetimes that
+  share a ``tzinfo`` ignores that ``tzinfo`` and compares the base datetimes, and
+  ``fold`` is part of neither, so across a DST transition the comparison
+  disagrees with the order the fire times actually occur in. The one-microsecond
+  nudge that makes the bounds inclusive had the same defect: arithmetic on an
+  aware datetime moves the wall clock and resets ``fold``, so a one-microsecond
+  step could move a bound by a whole DST offset. A four-minute interval inside
+  the ``Australia/Sydney`` fall-back hour returned 1 of its 6 fire times, ending
+  the generator early with no exception; a reverse range over the
+  ``Europe/London`` spring-forward yielded a fire time 15 minutes below the
+  requested lower bound; and a forward interval whose bounds read backwards on
+  the wall clock ran backwards. Bounds and fire times are now compared as
+  instants, and the inclusive-ends nudge moves by real elapsed time. Naive
+  datetimes are unaffected, and no range that does not cross an offset change
+  moves. [#259, @hdimer]
 - Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted and the day-of-month can never occur in the selected month (e.g. ``0 0 31 2 0``). Under the Vixie OR semantics the unsatisfiable side now contributes no dates instead of aborting the whole expression, and ``match()`` and ``croniter_range()``, which swallow the error, no longer return silently wrong results for these expressions. [b245ab6, #243, @semx, @MildlyMeticulous]
 - Fix hashed divisions (``H/{divisor}``, ``H({begin}-{end})/{divisor}``) when the divisor
   is as wide as, or wider than, the range it is drawn from. Three symptoms, one cause:
