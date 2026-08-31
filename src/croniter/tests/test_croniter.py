@@ -3337,36 +3337,36 @@ class CroniterTest(base.TestCase):
         self._test_sunday_ranges(
             "0 0 * * Thu-Tue/2",
             [
-                2,
                 4,
                 6,
-                9,
+                8,
                 11,
                 13,
-                16,
+                15,
                 18,
                 20,
-                23,
+                22,
                 25,
                 27,
-                30,
+                29,
                 1,
                 3,
-                6,
+                5,
                 8,
                 10,
-                13,
+                12,
                 15,
                 17,
-                20,
+                19,
                 22,
                 24,
-                27,
+                26,
                 29,
                 2,
-                5,
+                4,
                 7,
                 9,
+                11,
             ],
         )
 
@@ -3405,6 +3405,24 @@ class CroniterTest(base.TestCase):
                 14,
             ],
         )
+
+    def test_reverse_range_with_step_wraps_correctly(self):
+        # A wrapping range with a step must keep the step spacing across the
+        # wrap. "every step-th element in range order" is the same rule croniter
+        # already applies to non-wrapping ranges, e.g. Apr-Jan/3 -> Apr,Jul,Oct,Jan.
+        def months(expr):
+            return sorted(croniter(expr, datetime(2024, 1, 1)).expanded[3])
+
+        # Apr-Jan/3 (already correct) pins the intended semantics.
+        self.assertEqual(months("0 0 1 4-1/3 *"), [1, 4, 7, 10])
+        # Nov-Feb/3 = {Nov,Dec,Jan,Feb}, step 3 from Nov -> Nov, Feb.
+        self.assertEqual(months("0 0 1 11-2/3 *"), [2, 11])
+        # Nov-Mar/3 = {Nov,Dec,Jan,Feb,Mar}, step 3 from Nov -> Nov, Feb.
+        self.assertEqual(months("0 0 1 11-3/3 *"), [2, 11])
+        # Apr-Mar/2 spans the whole year; step 2 from Apr -> Apr,Jun,Aug,Oct,Dec,Feb.
+        # A set containing both 2 and 4, or both 3 and 4, is impossible under a
+        # two-month step and would indicate the wrap dropped or shifted a value.
+        self.assertEqual(months("0 0 1 4-3/2 *"), [2, 4, 6, 8, 10, 12])
 
     def test_mth_ranges_from(self):
         self._test_mth_cron_ranges(
@@ -3494,19 +3512,19 @@ class CroniterTest(base.TestCase):
         self._test_mth_cron_ranges(
             "0 0 1 Apr-Mar/2 *",
             [
-                "24 3",
+                "24 2",
                 "24 4",
                 "24 6",
                 "24 8",
                 "24 10",
                 "24 12",
-                "25 3",
+                "25 2",
                 "25 4",
                 "25 6",
                 "25 8",
                 "25 10",
                 "25 12",
-                "26 3",
+                "26 2",
                 "26 4",
                 "26 6",
                 "26 8",
