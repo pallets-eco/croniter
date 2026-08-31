@@ -1207,7 +1207,7 @@ class croniter:
                             if ((curpos + step) > len(whole_field_range)) and (
                                 already_skipped < step
                             ):
-                                to_skip = step - already_skipped
+                                to_skip = step - already_skipped - 1
                         rng += list(range(cls.RANGES[field_index][0] + to_skip, high + 1, step))
                     else:
                         try:
