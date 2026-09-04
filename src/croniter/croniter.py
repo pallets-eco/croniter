@@ -1207,9 +1207,11 @@ class croniter:
             res = set(res)
             res = sorted(res, key=lambda i: f"{i:02}" if isinstance(i, int) else i)
             if len(res) == cls.LEN_MEANS_ALL[field_index]:
-                # Make sure the wildcard is used in the correct way (avoid over-optimization)
-                if (field_index == DAY_FIELD and "*" not in expressions[DOW_FIELD]) or (
-                    field_index == DOW_FIELD and "*" not in expressions[DAY_FIELD]
+                # Make sure the wildcard is used in the correct way (avoid over-optimization).
+                # Compare against the literal wildcard: a step like "*/5" contains "*"
+                # but is a restricted field, not the unconstrained wildcard.
+                if (field_index == DAY_FIELD and expressions[DOW_FIELD] != "*") or (
+                    field_index == DOW_FIELD and expressions[DAY_FIELD] != "*"
                 ):
                     pass
                 else:
