@@ -308,6 +308,31 @@ take their phase from the start time's second. Day-of-month, month and year do
 not start at zero, so they take theirs from the field minimum rather than from
 the value itself.
 
+**Only the phase moves.** A field that declares its own range keeps both of its
+bounds, and the phase is moved *into* that range::
+
+    >>> croniter('10-50/15 * * * *', datetime(2024, 7, 11, 10, 7), expand_from_start_time=True).expanded[0]
+    [22, 37]
+    >>> croniter('10-50/15 * * * *', datetime(2024, 7, 11, 10, 7)).expanded[0]
+    [10, 25, 40]
+
+Three consequences of moving a phase inside a fixed window are worth stating.
+A re-based range can hold one period fewer than the default expansion does —
+``10-20/7`` is ``10,17`` by default and ``14`` alone from a start at minute 7.
+Where no value of the phase falls inside the range at all, the expression is
+honoured as written, so an expansion is never empty. And a range whose bounds
+wrap — ``6-0`` in day-of-week, Saturday and Sunday — has no single in-range
+phase, so it too is left as written.
+
+An equal range means the whole cycle (see `Note about Ranges`_), and that cycle
+takes its phase from ``start_time`` like any other, so the two spellings of one
+schedule agree::
+
+    >>> croniter('0 0 1 1-1/3 *', datetime(2024, 2, 15), expand_from_start_time=True).expanded[3]
+    [2, 5, 8, 11]
+    >>> croniter('0 0 1 */3 *', datetime(2024, 2, 15), expand_from_start_time=True).expanded[3]
+    [2, 5, 8, 11]
+
 The phase is read from ``start_time`` in **its own timezone**, so a
 timezone-aware start time phases on the local wall clock, not on its UTC form::
 
@@ -483,7 +508,9 @@ cycle**, not the single value it names. This applies in every field::
 
 So ``Jan-Jan`` is every month, not January. A step is applied across that whole
 cycle, so ``1-1/3`` in the month field is January, April, July and October. To
-name a single value, write it on its own — ``1`` or ``JAN``.
+name a single value, write it on its own — ``1`` or ``JAN``. Under
+``expand_from_start_time`` that cycle takes its phase from the start time, like
+the ``*/3`` spelling of the same schedule.
 
 Note about Sunday
 =================
