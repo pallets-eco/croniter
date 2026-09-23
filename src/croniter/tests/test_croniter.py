@@ -1835,6 +1835,31 @@ class CroniterTest(base.TestCase):
             ],
         )
 
+    def test_dst_negative_dst_zone_ambiguous_pytz(self):
+        """Test Europe/Dublin (negative DST encoding) fall-back ambiguity.
+
+        On 2019-10-27 local 01:00 occurs twice (IST +01:00 first, then
+        GMT +00:00), so both instants are valid fire times for an hourly
+        schedule. croniter used to raise AssertionError from the pytz
+        ambiguous-time handling instead of enumerating them.
+        """
+        tz = pytz.timezone("Europe/Dublin")
+        start = tz.localize(datetime(2019, 10, 26, 12, 0))
+        it = croniter("0 1 * * *", start)
+        ret = [
+            it.get_next(datetime).isoformat(),
+            it.get_next(datetime).isoformat(),
+            it.get_next(datetime).isoformat(),
+        ]
+        self.assertEqual(
+            ret,
+            [
+                "2019-10-27T01:00:00+01:00",
+                "2019-10-27T01:00:00+00:00",
+                "2019-10-28T01:00:00+00:00",
+            ],
+        )
+
     def test_nth_wday_simple(self):
         def f(y, m, w):
             return croniter._get_nth_weekday_of_month(y, m, w)

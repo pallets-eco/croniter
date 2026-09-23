@@ -204,15 +204,20 @@ def _add_tzinfo(
                 break
             return result, False
         except pytz.AmbiguousTimeError:
-            closer = localize(date, is_dst=not is_prev)
-            farther = localize(date, is_dst=is_prev)
-            # TODO: Check negative DST
-            assert (closer.astimezone(UTC_DT) > farther.astimezone(UTC_DT)) == is_prev
-            if _is_successor(closer, previous_date, is_prev):
-                result = closer
-            else:
-                assert _is_successor(farther, previous_date, is_prev)
-                result = farther
+            candidates = [
+                localize(date, is_dst=True),
+                localize(date, is_dst=False),
+            ]
+            # Depending on the sign of the zone's DST offset, either
+            # interpretation can be the earlier instant, so order by the
+            # actual absolute times instead of assuming is_dst ordering.
+            candidates.sort(key=lambda value: value.astimezone(UTC_DT))
+            if is_prev:
+                candidates.reverse()
+            for candidate in candidates:
+                if _is_successor(candidate, previous_date, is_prev):
+                    return candidate, True
+            return candidates[-1], True
         return result, True
 
     result = date.replace(fold=1 if is_prev else 0, tzinfo=previous_date.tzinfo)
