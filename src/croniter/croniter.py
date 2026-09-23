@@ -809,6 +809,13 @@ class croniter:
             )
             alternative_aware_time, exists = _add_tzinfo(alternative_unaware_time, now, is_prev)
 
+            if not exists:
+                # The alternative crossed a DST gap and was shifted forward to
+                # the next existing wall clock. Such a manufactured time is not
+                # a fire time the expression names, so keep the regular
+                # candidate instead.
+                return aware_time
+
             if not _is_successor(alternative_aware_time, now, is_prev):
                 # The alternative time is an ancestor of now. Thus it is not an alternative.
                 return aware_time

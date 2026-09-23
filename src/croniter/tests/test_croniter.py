@@ -1835,6 +1835,45 @@ class CroniterTest(base.TestCase):
             ],
         )
 
+    def test_dst_gap_shift_is_not_a_fire_time(self):
+        """Lord Howe jumps forward by 30 minutes: 02:00 (+10:30) -> 02:30 (+11:00).
+
+        For the hourly schedule ``0 * * * *`` the 02:00 slot does not exist on
+        2019-10-06, and shifting it lands on 02:30, which the expression does
+        not name (minute 30 vs minute 0). ``get_next`` skips such a shifted
+        time; ``get_prev`` and ``match`` must not present it as a fire time.
+        """
+        tz = zoneinfo.ZoneInfo("Australia/Lord_Howe")
+        start = datetime(2019, 10, 6, 1, 43, tzinfo=tz)
+        nxt = croniter("0 * * * *", start).get_next(datetime)
+        self.assertEqual(nxt.isoformat(), "2019-10-06T03:00:00+11:00")
+
+        prv = croniter("0 * * * *", nxt).get_prev(datetime)
+        self.assertEqual(prv.isoformat(), "2019-10-06T01:00:00+10:30")
+        self.assertLess(prv, start)
+
+        self.assertFalse(croniter.match("0 * * * *", datetime(2019, 10, 6, 2, 30, tzinfo=tz)))
+        # 02:30 is a legitimate fire time when the expression names minute 30.
+        self.assertTrue(croniter.match("0,30 * * * *", datetime(2019, 10, 6, 2, 30, tzinfo=tz)))
+
+    def test_dst_gap_shift_is_not_a_fire_time_pytz(self):
+        """Lord Howe jumps forward by 30 minutes: 02:00 (+10:30) -> 02:30 (+11:00).
+
+        Same schedule as the zoneinfo variant: a gap-shifted wall clock must
+        not be reported by ``get_prev`` or ``match`` as a fire time of ``0 *
+        * * *``.
+        """
+        tz = pytz.timezone("Australia/Lord_Howe")
+        start = tz.localize(datetime(2019, 10, 6, 1, 43))
+        nxt = croniter("0 * * * *", start).get_next(datetime)
+        self.assertEqual(nxt.isoformat(), "2019-10-06T03:00:00+11:00")
+
+        prv = croniter("0 * * * *", nxt).get_prev(datetime)
+        self.assertEqual(prv.isoformat(), "2019-10-06T01:00:00+10:30")
+        self.assertLess(prv, start)
+
+        self.assertFalse(croniter.match("0 * * * *", tz.localize(datetime(2019, 10, 6, 2, 30))))
+
     def test_nth_wday_simple(self):
         def f(y, m, w):
             return croniter._get_nth_weekday_of_month(y, m, w)
