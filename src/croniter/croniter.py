@@ -167,6 +167,29 @@ def _is_successor(
     return date.astimezone(UTC_DT) > previous_date.astimezone(UTC_DT)
 
 
+def _instant(date: datetime.datetime) -> datetime.datetime:
+    """Return a form of the given date that orders by real elapsed time.
+
+    Comparing two aware datetimes that share a tzinfo ignores that tzinfo and
+    compares the wall clocks, so across a DST transition the comparison
+    disagrees with the order the instants actually occurred in.
+    """
+    if date.utcoffset() is None:
+        return date
+    return date.astimezone(UTC_DT)
+
+
+def _shift(date: datetime.datetime, delta: relativedelta) -> datetime.datetime:
+    """Move the given date by delta of real elapsed time, keeping its timezone.
+
+    Arithmetic on an aware datetime moves the wall clock and resets ``fold``, so
+    a step of one microsecond can move the instant by a whole DST offset.
+    """
+    if date.utcoffset() is None:
+        return date + delta
+    return (_instant(date) + delta).astimezone(date.tzinfo)
+
+
 def _timezone_delta(date1: datetime.datetime, date2: datetime.datetime) -> datetime.timedelta:
     """Calculate the timezone difference of the given dates."""
     offset1 = date1.utcoffset()
@@ -1451,14 +1474,15 @@ def croniter_range(
         auto_rt = float
     if ret_type is None:
         ret_type = auto_rt
+    forward = _instant(start) < _instant(stop)
     if not exclude_ends:
         ms1 = relativedelta(microseconds=1)
-        if start < stop:  # Forward (normal) time order
-            start -= ms1
-            stop += ms1
+        if forward:  # Forward (normal) time order
+            start = _shift(start, -ms1)
+            stop = _shift(stop, ms1)
         else:  # Reverse time order
-            start += ms1
-            stop -= ms1
+            start = _shift(start, ms1)
+            stop = _shift(stop, -ms1)
     year_span = math.floor(abs(stop.year - start.year)) + 1
     ic = _croniter(
         expr_format,
@@ -1470,16 +1494,17 @@ def croniter_range(
         expand_from_start_time=expand_from_start_time,
     )
     # define a continue (cont) condition function and step function for the main while loop
-    if start < stop:  # Forward
+    stop_instant = _instant(stop)
+    if forward:
 
         def cont(v):
-            return v < stop
+            return _instant(v) < stop_instant
 
         step = ic.get_next
     else:  # Reverse
 
         def cont(v):
-            return v > stop
+            return _instant(v) > stop_instant
 
         step = ic.get_prev
     try:
