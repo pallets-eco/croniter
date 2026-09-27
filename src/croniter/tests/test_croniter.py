@@ -2286,6 +2286,15 @@ class CroniterTest(base.TestCase):
         it = croniter(cron, start, day_or=False, max_years_between_matches=5)
         self.assertEqual(it.get_next(datetime), datetime(2025, 1, 8, 13))
 
+    def test_max_years_between_matches_rejects_bool(self):
+        # bool subclasses int; True would silently become 1 via int(True)
+        start = datetime(2020, 9, 24)
+        with self.assertRaises(TypeError) as ctx:
+            croniter("0 0 * * *", start, max_years_between_matches=True)
+        self.assertIn("bool", str(ctx.exception))
+        with self.assertRaises(TypeError):
+            croniter("0 0 * * *", start, max_years_between_matches=False)
+
     def test_explicit_year_forward(self):
         start = datetime(2020, 9, 24)
         cron = "0 13 8 1,4,7,10 wed"

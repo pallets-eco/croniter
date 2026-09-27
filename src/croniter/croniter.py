@@ -314,6 +314,12 @@ class croniter:
         self._max_years_btw_matches_explicitly_set = max_years_between_matches is not None
         if max_years_between_matches is None:
             max_years_between_matches = 50
+        # bool subclasses int; True would silently become 1 year via int(True)
+        if isinstance(max_years_between_matches, bool):
+            raise TypeError(
+                "max_years_between_matches must be an int or None, not bool "
+                f"(got {max_years_between_matches!r})"
+            )
         self._max_years_between_matches = max(int(max_years_between_matches), 1)
 
         if start_time is None:
