@@ -6,6 +6,9 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Fix day-of-week ``7`` (Sunday) being rejected in the 6-field (seconds) and 7-field
+  (year) forms. ``7`` is now accepted as an alias for ``0`` in every form, as it already
+  was in the classic 5-field form. [#263, @nikolauspschuetz]
 - Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted and the day-of-month can never occur in the selected month (e.g. ``0 0 31 2 0``). Under the Vixie OR semantics the unsatisfiable side now contributes no dates instead of aborting the whole expression, and ``match()`` and ``croniter_range()``, which swallow the error, no longer return silently wrong results for these expressions. [b245ab6, #243, @semx, @MildlyMeticulous]
 - Fix hashed divisions (``H/{divisor}``, ``H({begin}-{end})/{divisor}``) when the divisor
   is as wide as, or wider than, the range it is drawn from. Three symptoms, one cause:

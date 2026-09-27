@@ -2933,6 +2933,15 @@ class CroniterTest(base.TestCase):
         self.assertTrue(croniter.is_valid("* * * * 1-7"))
         self.assertTrue(croniter.is_valid("* * * * 7"))
 
+    def test_dow7_sunday_in_second_and_year_forms(self):
+        # Sunday is 0 or 7 in every field-count form, not only the 5-field one
+        for expr, sunday in [
+            ("0 0 * * 7 0", "0 0 * * 0 0"),  # 6 fields (seconds)
+            ("0 0 * * 7 0 *", "0 0 * * 0 0 *"),  # 7 fields (seconds + year)
+        ]:
+            self.assertTrue(croniter.is_valid(expr))
+            self.assertEqual(croniter.expand(expr)[0][4], croniter.expand(sunday)[0][4])
+
     def test_sunday_ranges_to(self):
         self._test_sunday_ranges("0 0 * * Sun-Sun", list(range(2, 32)))
         self._test_sunday_ranges("0 0 * * Mon-Sun", list(range(2, 32)))

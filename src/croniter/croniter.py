@@ -929,9 +929,9 @@ class croniter:
             # 6fields second repeat form or 7 fields year form
             # but still let conversion happen if day field is shifted
             (field_index in [DAY_FIELD, MONTH_FIELD] and len_expressions == UNIX_CRON_LEN)
-            or (field_index in [MONTH_FIELD, DOW_FIELD] and len_expressions == SECOND_CRON_LEN)
+            or (field_index in [MONTH_FIELD] and len_expressions == SECOND_CRON_LEN)
             or (
-                field_index in [DAY_FIELD, MONTH_FIELD, DOW_FIELD]
+                field_index in [DAY_FIELD, MONTH_FIELD]
                 and len_expressions == YEAR_CRON_LEN
             )
         ):
