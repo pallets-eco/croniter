@@ -6,6 +6,14 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Fix ``get_prev``, ``match`` and ``croniter_range`` reporting a DST gap shift as a fire time
+  that ``get_next`` skips. When a cron slot fell into a spring-forward gap and resolving the
+  alternative across the offset change walked forward to the next existing wall clock, that
+  manufactured wall clock was returned although its fields did not match the expression: for
+  ``0 * * * *`` in ``Australia/Lord_Howe``, whose transition is only 30 minutes, ``get_prev``
+  from 03:00 landed on 02:30 and ``match(02:30)`` was true while ``get_next`` skipped it. A
+  shifted alternative is now discarded like the regular candidate already was when hours are
+  wildcarded, so the three APIs agree again. [#266, @abhijeet117]
 - Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted and the day-of-month can never occur in the selected month (e.g. ``0 0 31 2 0``). Under the Vixie OR semantics the unsatisfiable side now contributes no dates instead of aborting the whole expression, and ``match()`` and ``croniter_range()``, which swallow the error, no longer return silently wrong results for these expressions. [b245ab6, #243, @semx, @MildlyMeticulous]
 - Fix hashed divisions (``H/{divisor}``, ``H({begin}-{end})/{divisor}``) when the divisor
   is as wide as, or wider than, the range it is drawn from. Three symptoms, one cause:
