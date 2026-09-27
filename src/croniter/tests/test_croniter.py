@@ -223,6 +223,16 @@ class CroniterTest(base.TestCase):
             [(2026, 2, 22), (2026, 2, 15), (2026, 2, 8)],
         )
 
+    def test_day_or_survives_step_syntax_in_sibling_field(self):
+        # "*/5" contains a literal "*" but restricts day-of-month, so the day_or
+        # union still applies and the schedule fires every day.
+        itr = croniter("0 0 */5 * 0-6", datetime(2026, 11, 9))
+        got = [itr.get_next(datetime) for _ in range(3)]
+        self.assertEqual(
+            [(d.year, d.month, d.day) for d in got],
+            [(2026, 11, 10), (2026, 11, 11), (2026, 11, 12)],
+        )
+
     def test_impossible_day_of_month_alone_still_raises(self):
         # With no day-of-week to fall back on there really is no such date.
         for expr in ("0 0 31 2 *", "0 0 30 2 *"):
@@ -459,6 +469,9 @@ class CroniterTest(base.TestCase):
         self.assertEqual(croniter("0 0 * 1 0-6").expanded[dow], wildcard)
         self.assertEqual(croniter("0 0 * 1 0-6,sat#3").expanded[dow], wildcard)
         self.assertEqual(croniter("0 0 1 1 0 0-59").expanded[s], wildcard)
+        # A "*/N" sibling field is not the bare wildcard either.
+        self.assertEqual(croniter("0 0 */5 1 0-6").expanded[dow], [0, 1, 2, 3, 4, 5, 6])
+        self.assertEqual(croniter("0 0 1-31 1 */1").expanded[d], list(range(1, 32)))
         # Real life examples
         self.assertEqual(croniter("30 1-12,0,10-23 15-21 * fri").expanded[h], wildcard)
         self.assertEqual(croniter("30 1-23,0 15-21 * fri").expanded[h], wildcard)
