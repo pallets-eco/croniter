@@ -6,6 +6,14 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Fix ``expand_from_start_time`` discarding the bounds of an explicitly written
+  stepped range, so the schedule fired outside the range the expression declares.
+  ``10-50/15 * * * *`` expanded to minutes ``7,22,37`` (``7`` is below the ``10`` the
+  user wrote) and ``0-1/2`` widened from a two-minute window to every other minute
+  across the whole field. Re-basing the low bound on the start time is correct for
+  ``*/step``, where the low is a byproduct of expanding ``*``, and is kept for a
+  start-with-step cycle such as ``5/15``; it no longer rewrites the low of a two-bound
+  ``a-b/step`` range. Default mode was already correct and is unchanged. [#252, @earfman]
 - Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted and the day-of-month can never occur in the selected month (e.g. ``0 0 31 2 0``). Under the Vixie OR semantics the unsatisfiable side now contributes no dates instead of aborting the whole expression, and ``match()`` and ``croniter_range()``, which swallow the error, no longer return silently wrong results for these expressions. [b245ab6, #243, @semx, @MildlyMeticulous]
 - Fix hashed divisions (``H/{divisor}``, ``H({begin}-{end})/{divisor}``) when the divisor
   is as wide as, or wider than, the range it is drawn from. Three symptoms, one cause:
