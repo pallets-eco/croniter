@@ -2709,6 +2709,28 @@ class CroniterTest(base.TestCase):
                         lo = croniter.RANGES[field][0]
                         self.assertIn(((local - lo) % 5) + lo, got)
 
+    def test_expand_from_start_time_keeps_explicit_range_bounds(self):
+        """A two-bound stepped range must stay inside the bounds it declares.
+
+        Re-basing the low on the start time is right for "*/step", where the low
+        is a byproduct of expanding "*", and for a start-with-step cycle. It is
+        wrong for "a-b/step", where the user wrote both edges: re-basing fired
+        below the declared low and could widen a narrow window to the whole field.
+        """
+        m, h = 0, 1
+        start = datetime(2024, 7, 11, 10, 7)
+
+        def efst(expr, field):
+            return croniter(expr, start_time=start, expand_from_start_time=True).expanded[field]
+
+        self.assertEqual(efst("10-50/15 * * * *", m), [10, 25, 40])
+        self.assertEqual(efst("20-40/5 * * * *", m), [20, 25, 30, 35, 40])
+        self.assertEqual(efst("0-1/2 * * * *", m), [0])
+        self.assertEqual(efst("* 6-18/6 * * *", h), [6, 12, 18])
+        # The wildcard and start-with-step forms still re-base as before.
+        self.assertEqual(efst("*/15 * * * *", m), [7, 22, 37, 52])
+        self.assertEqual(efst("5/15 * * * *", m), [7, 22, 37, 52])
+
     def test_expand_from_start_time_second(self):
         fifteen_seconds_interval_pattern = "* * * * * */15"
         ret1 = croniter(

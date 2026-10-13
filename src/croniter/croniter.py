@@ -1053,6 +1053,10 @@ class croniter:
                     r"%d-%d\1" % (cls.RANGES[field_index][0], cls.RANGES[field_index][1]),
                     str(e),
                 )
+                # The substitution only fires for "*/step", so a changed string
+                # marks the one case where ``low`` is a byproduct of expanding the
+                # wildcard rather than a bound the user wrote.
+                wildcard_with_step = t != str(e)
                 m = step_search_re.search(t)
 
                 # "{start}/{step}" is its own shape, not a range. It is normalized
@@ -1133,7 +1137,18 @@ class croniter:
                     # time. A single point has no cycle to re-base, and rewriting its
                     # bound here would leave the bug reachable in
                     # ``expand_from_start_time`` mode while looking fixed by default.
-                    if from_timestamp and not start_at_field_max:
+                    #
+                    # It also must not rewrite a bound the user wrote explicitly. A
+                    # two-bound range like "10-50/15" declares both edges, so re-basing
+                    # its low fires outside the range the expression names ("10-50/15"
+                    # became 7,22,37). Only re-base when low came from expanding "*",
+                    # or from a start-with-step token which is a cycle in its own right
+                    # ("5/15" keeps re-basing, matching its existing behavior).
+                    if (
+                        from_timestamp
+                        and not start_at_field_max
+                        and (wildcard_with_step or start_with_step)
+                    ):
                         low = cls._get_low_from_current_date_number(
                             field_index, int(step), int(from_timestamp), from_timestamp_tz
                         )
