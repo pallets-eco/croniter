@@ -95,6 +95,53 @@ class CroniterRangeTest(base.TestCase):
         self.assertNotEqual(res[0].tzinfo, res[-1].tzinfo)
         self.assertEqual(len(res), 12)
 
+    def test_timezone_dst_fold_instant_order(self):
+        """Bounds and the stop test compare instants, not wall clocks."""
+        tz = zoneinfo.ZoneInfo("Australia/Sydney")
+        # Fall back 2019-04-07: 03:00 -> 02:00 (UTC+11 -> UTC+10).
+        # UTC 15:22 -> UTC 16:26 contains six */13 fire times.
+        start = datetime(2019, 4, 7, 2, 22, tzinfo=tz)
+        stop = datetime(2019, 4, 7, 2, 26, tzinfo=tz, fold=1)
+        res = [i.isoformat() for i in croniter_range(start, stop, "*/13 * * * *")]
+        self.assertEqual(
+            res,
+            [
+                "2019-04-07T02:26:00+11:00",
+                "2019-04-07T02:39:00+11:00",
+                "2019-04-07T02:52:00+11:00",
+                "2019-04-07T02:00:00+10:00",
+                "2019-04-07T02:13:00+10:00",
+                "2019-04-07T02:26:00+10:00",
+            ],
+        )
+        # Wall clock reads these bounds as reversed; real time order is forward.
+        start = datetime(2019, 4, 7, 2, 40, tzinfo=tz)  # UTC 15:40
+        stop = datetime(2019, 4, 7, 2, 10, tzinfo=tz, fold=1)  # UTC 16:10
+        res = [i.isoformat() for i in croniter_range(start, stop, "*/13 * * * *")]
+        self.assertEqual(
+            res,
+            [
+                "2019-04-07T02:52:00+11:00",
+                "2019-04-07T02:00:00+10:00",
+            ],
+        )
+
+    def test_timezone_dst_reverse_bound(self):
+        """A reverse range must not yield values before its lower bound."""
+        tz = zoneinfo.ZoneInfo("Europe/London")
+        # Spring forward 2018-03-25: 01:00 GMT -> 02:00 BST.
+        a = datetime(2018, 3, 25, 1, 15, tzinfo=tz)  # UTC 01:15
+        b = datetime(2018, 3, 25, 5, 0, tzinfo=tz)  # UTC 04:00
+        res = [i.isoformat() for i in croniter_range(b, a, "0 * * * *")]
+        self.assertEqual(
+            res,
+            [
+                "2018-03-25T05:00:00+01:00",
+                "2018-03-25T04:00:00+01:00",
+                "2018-03-25T03:00:00+01:00",
+            ],
+        )
+
     def test_extra_hour_day_prio(self):
         """Test New York jumps forward: 2020-03-08 02:00 -> 03:00 (UTC-5 -> UTC-4)."""
         tz = zoneinfo.ZoneInfo("America/New_York")

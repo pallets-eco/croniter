@@ -1451,14 +1451,25 @@ def croniter_range(
         auto_rt = float
     if ret_type is None:
         ret_type = auto_rt
+
+    # Aware datetimes that share a tzinfo compare by wall clock (the common
+    # tzinfo is ignored and `fold` with it), which disagrees with real time
+    # order across a DST transition. Order the bounds and run the stop test
+    # on instants instead, the way _is_successor already does.
+    def _instant(d):
+        return d.astimezone(UTC_DT) if d.tzinfo is not None else d
+
+    forward = _instant(start) < _instant(stop)
     if not exclude_ends:
         ms1 = relativedelta(microseconds=1)
-        if start < stop:  # Forward (normal) time order
-            start -= ms1
-            stop += ms1
+        # relativedelta arithmetic resets fold, which would move a bound
+        # inside a DST fold by the whole offset change, so carry it over.
+        if forward:  # Forward (normal) time order
+            start = (start - ms1).replace(fold=start.fold)
+            stop = (stop + ms1).replace(fold=stop.fold)
         else:  # Reverse time order
-            start += ms1
-            stop -= ms1
+            start = (start + ms1).replace(fold=start.fold)
+            stop = (stop - ms1).replace(fold=stop.fold)
     year_span = math.floor(abs(stop.year - start.year)) + 1
     ic = _croniter(
         expr_format,
@@ -1470,16 +1481,17 @@ def croniter_range(
         expand_from_start_time=expand_from_start_time,
     )
     # define a continue (cont) condition function and step function for the main while loop
-    if start < stop:  # Forward
+    stop_instant = _instant(stop)
+    if forward:  # Forward
 
         def cont(v):
-            return v < stop
+            return _instant(v) < stop_instant
 
         step = ic.get_next
     else:  # Reverse
 
         def cont(v):
-            return v > stop
+            return _instant(v) > stop_instant
 
         step = ic.get_prev
     try:

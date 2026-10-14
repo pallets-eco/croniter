@@ -6,6 +6,15 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Fix ``croniter_range`` ordering its bounds and testing its stop condition by wall
+  clock instead of real time order. Aware datetimes that share a tzinfo compare by
+  their base fields (the common tzinfo and ``fold`` are ignored), so across a DST
+  transition the generator could silently truncate the result (1 fire time returned
+  where 6 exist), yield fire times outside the requested interval, or iterate a
+  forward interval backwards. The ``exclude_ends`` adjustment also dropped ``fold``
+  from the bounds, moving them by the whole DST offset. Bounds and results are now
+  compared as instants and ``fold`` is carried over. Naive datetimes, and aware ones
+  away from a transition, compare exactly as before. [#259]
 - Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted and the day-of-month can never occur in the selected month (e.g. ``0 0 31 2 0``). Under the Vixie OR semantics the unsatisfiable side now contributes no dates instead of aborting the whole expression, and ``match()`` and ``croniter_range()``, which swallow the error, no longer return silently wrong results for these expressions. [b245ab6, #243, @semx, @MildlyMeticulous]
 - Fix hashed divisions (``H/{divisor}``, ``H({begin}-{end})/{divisor}``) when the divisor
   is as wide as, or wider than, the range it is drawn from. Three symptoms, one cause:
