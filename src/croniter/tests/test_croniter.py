@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import random
+import subprocess
+import sys
 import unittest
 import zoneinfo
 from datetime import datetime, timedelta
@@ -2123,6 +2125,20 @@ class CroniterTest(base.TestCase):
             croniter("0 0 * * 1#7")
         with self.assertRaises(CroniterBadCronError):
             croniter("0 0 * * 1#0")
+
+    def test_nth_out_of_range_without_asserts(self):
+        # python -O strips assert statements, so the nth bound must be
+        # enforced by an ordinary check or 1#0 and 1#7 pass validation.
+        code = (
+            "import sys\n"
+            "from croniter import croniter\n"
+            "bad = [e for e in ('0 0 * * 1#0', '0 0 * * 1#7') if croniter.is_valid(e)]\n"
+            "sys.exit(repr(bad) if bad else 0)\n"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-O", "-c", code], capture_output=True, text=True, check=False
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_last_out_of_range(self):
         with self.assertRaises(CroniterBadCronError):
