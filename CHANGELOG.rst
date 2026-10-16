@@ -38,6 +38,10 @@ Bugfixes
   worked: seconds take their phase from the start time's second, and years — which do
   not start at zero — take theirs from the field minimum, as day-of-month and month
   already do. [#254, @potiuk]
+- Reject out-of-range nth day-of-week values (``1#0``, ``1#7``) with an ordinary check
+  instead of an ``assert``. Under ``python -O`` the assert was stripped, so ``1#0``
+  passed ``is_valid`` and fired on every Monday and ``1#7`` passed and never fired.
+  [@Raghuvardhan-Reddy78]
 - Fix ``{start}/{step}`` expanding to the whole field when ``start`` is the field
   maximum. ``59/15 * * * *`` fired at ``:00``/``:15``/``:30``/``:45`` instead of
   ``:59``, and the same held in every field at its own maximum: ``23/6`` hours,
