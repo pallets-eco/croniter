@@ -1016,8 +1016,11 @@ class croniter:
                             e = he
                             try:
                                 nth = int(last)
-                                assert 5 >= nth >= 1
-                            except (KeyError, ValueError, AssertionError):
+                            except ValueError:
+                                nth = None
+                            # A plain check, not an assert: ``python -O`` strips
+                            # asserts, which let ``1#0`` and ``1#6`` through.
+                            if nth is None or not 1 <= nth <= 5:
                                 raise CroniterBadCronError(
                                     f"[{expr_format}] is not acceptable."
                                     f" Invalid day_of_week value: '{nth}'"
