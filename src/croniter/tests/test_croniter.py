@@ -2339,6 +2339,16 @@ class CroniterTest(base.TestCase):
         self.assertRaises(CroniterBadCronError, croniter, "0 0 0 0 0")
         self.assertRaises(CroniterBadCronError, croniter, "0 0 0 1 0")
 
+    def test_issue280(self):
+        # day-of-month 0 must be rejected in the seconds and years forms too,
+        # not silently rewritten to 1 like the 5-field form was before #9
+        self.assertRaises(CroniterBadCronError, croniter, "0 0 0 * * *", datetime(2024, 3, 10))
+        self.assertRaises(
+            CroniterBadCronError, croniter, "0 0 0 0 * *", datetime(2024, 3, 10), second_at_beginning=True
+        )
+        self.assertRaises(CroniterBadCronError, croniter, "0 0 0 0 * * *", datetime(2024, 3, 10))
+        self.assertFalse(croniter.is_valid("0 0 0 * * *"))
+
     def test_issue_k11(self):
         now = datetime(2019, 1, 14, 11, 0, 59, tzinfo=zoneinfo.ZoneInfo("America/New_York"))
         nextnow = croniter("* * * * * ").next(datetime, start_time=now)
