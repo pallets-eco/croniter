@@ -6,6 +6,10 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Reject non-ASCII digits in cron expressions. The parsing regexes used Unicode ``\d``
+  and ``\w``, and ``int()`` also accepts any Unicode decimal digit, so ``٥ * * * *``
+  (Arabic-Indic five) or ``０ ０ * * *`` (fullwidth zeros) passed ``is_valid`` and ran as
+  ``5 * * * *`` and ``0 0 * * *``. These now raise ``CroniterBadCronError``.
 - Fix ``get_next``/``get_prev`` raising ``CroniterBadDateError`` when day-of-month and day-of-week are both restricted and the day-of-month can never occur in the selected month (e.g. ``0 0 31 2 0``). Under the Vixie OR semantics the unsatisfiable side now contributes no dates instead of aborting the whole expression, and ``match()`` and ``croniter_range()``, which swallow the error, no longer return silently wrong results for these expressions. [b245ab6, #243, @semx, @MildlyMeticulous]
 - Fix hashed divisions (``H/{divisor}``, ``H({begin}-{end})/{divisor}``) when the divisor
   is as wide as, or wider than, the range it is drawn from. Three symptoms, one cause:
