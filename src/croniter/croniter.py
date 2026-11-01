@@ -105,21 +105,23 @@ YEAR_FIELDS = (
     YEAR_FIELD,
 )
 
-step_search_re = re.compile(r"^([^-]+)-([^-/]+)(/(\d+))?$")
-only_int_re = re.compile(r"^\d+$")
+step_search_re = re.compile(r"^([^-]+)-([^-/]+)(/(\d+))?$", re.ASCII)
+only_int_re = re.compile(r"^\d+$", re.ASCII)
 
 DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 WEEKDAYS = "|".join(DOW_ALPHAS.keys())
 MONTHS = "|".join(M_ALPHAS.keys())
-star_or_int_re = re.compile(r"^(\d+|\*)$")
+star_or_int_re = re.compile(r"^(\d+|\*)$", re.ASCII)
 special_dow_re = re.compile(
     rf"^(?P<pre>((?P<he>(({WEEKDAYS})(-({WEEKDAYS}))?)"
-    rf"|(({MONTHS})(-({MONTHS}))?)|\w+)#)|l)(?P<last>\d+)$"
+    rf"|(({MONTHS})(-({MONTHS}))?)|\w+)#)|l)(?P<last>\d+)$",
+    re.ASCII,
 )
-nearest_weekday_re = re.compile(r"^(?:(\d+)w|w(\d+))$")
+nearest_weekday_re = re.compile(r"^(?:(\d+)w|w(\d+))$", re.ASCII)
 re_star = re.compile("[*]")
 hash_expression_re = re.compile(
-    r"^(?P<hash_type>h|r)(\((?P<range_begin>\d+)-(?P<range_end>\d+)\))?(\/(?P<divisor>\d+))?$"
+    r"^(?P<hash_type>h|r)(\((?P<range_begin>\d+)-(?P<range_end>\d+)\))?(\/(?P<divisor>\d+))?$",
+    re.ASCII,
 )
 
 CRON_FIELDS = {
