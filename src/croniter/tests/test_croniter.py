@@ -1279,6 +1279,28 @@ class CroniterTest(base.TestCase):
         self.assertFalse(croniter.is_valid("* * * janu-jun *"))
         self.assertTrue(croniter.is_valid("H 0 * * *", hash_id="abc"))
 
+    def test_issue_280_day_zero_six_field(self):
+        # Day-of-month 0 must be rejected in BOTH the 5-field and the
+        # 6-field (seconds) forms.  In the 6-field form it used to be
+        # silently rewritten to 1 (so is_valid returned True and the
+        # schedule fired on the 1st instead of failing).
+        # See https://github.com/kiorky/croniter/issues/280
+        base = datetime(2024, 3, 10, 1, 30)
+        # 5-field form already rejects it
+        self.assertRaises(
+            CroniterBadCronError, croniter, "0 0 0 * *", base
+        )
+        # 6-field form must now reject it too, like the 5-field form
+        self.assertRaises(
+            CroniterBadCronError, croniter, "0 0 0 * * *", base
+        )
+        # is_valid must report the 6-field form as invalid
+        self.assertFalse(croniter.is_valid("0 0 0 * * *"))
+        # A legitimate day 1 in the 6-field form must keep working
+        self.assertTrue(croniter.is_valid("0 0 1 * * *"))
+        it = croniter("0 0 1 * * *", base)
+        self.assertEqual(it.get_next(datetime).day, 1)
+
     def test_is_valid_strict(self):
         # Feb 31 - never exists
         self.assertTrue(croniter.is_valid("0 0 31 2 *"))
