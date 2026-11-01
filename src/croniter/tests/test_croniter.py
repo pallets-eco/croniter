@@ -2977,6 +2977,36 @@ class CroniterTest(base.TestCase):
         self.assertEqual(croniter("0 0 * * 2-6/3", epoch).expanded[dow], [2, 5])
         self.assertEqual(efst("0 0 * * */3", epoch, dow), [1, 4])
 
+    def test_expand_from_start_time_with_hashed_divisor(self):
+        """A hashed or random divisor takes its phase from the start time.
+
+        The hash offset of ``H/15`` is a phase, not a bound. Emitting it as
+        ``{offset}-59/15`` made re-basing read it as a declared lower bound, so with
+        ``hash_id="xyz"`` (offset 6) from a start at minute 2 the expansion lost minute
+        2 and fired three times an hour instead of four.
+        """
+        start = datetime(2024, 1, 1, 10, 2)
+
+        def efst(expr, field, **kw):
+            return croniter(expr, start_time=start, expand_from_start_time=True, **kw).expanded[
+                field
+            ]
+
+        # Without the flag the hash supplies the phase, exactly as before.
+        self.assertEqual(croniter("H/15 * * * *", start, hash_id="xyz").expanded[0], [6, 21, 36, 51])
+        # With it, H/15 and R/15 behave like */15 -- the start time supplies the phase.
+        self.assertEqual(efst("*/15 * * * *", 0), [2, 17, 32, 47])
+        self.assertEqual(efst("H/15 * * * *", 0, hash_id="xyz"), [2, 17, 32, 47])
+        self.assertEqual(efst("R/15 * * * *", 0), [2, 17, 32, 47])
+        # The same in the hour, day-of-month and month fields.
+        self.assertEqual(efst("0 H/6 * * *", 1, hash_id="xyz"), efst("0 */6 * * *", 1))
+        self.assertEqual(efst("0 0 H/7 * *", 2, hash_id="xyz"), efst("0 0 */7 * *", 2))
+        self.assertEqual(efst("0 0 1 H/5 *", 3, hash_id="xyz"), efst("0 0 1 */5 *", 3))
+        # A hashed range keeps its declared bounds, not the hashed offset.
+        self.assertEqual(
+            efst("H(10-50)/7 * * * *", 0, hash_id="xyz"), efst("10-50/7 * * * *", 0)
+        )
+
     def test_expand_from_start_time_never_leaves_the_declared_range(self):
         """Property sweep: a re-based expansion may never fall outside its bounds.
 

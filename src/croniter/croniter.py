@@ -1542,7 +1542,7 @@ class HashExpander:
     def match(self, efl, idx, expr, hash_id=None, **kw):
         return hash_expression_re.match(expr)
 
-    def _expand_divisor(self, idx, m, hash_id, range_begin, range_end):
+    def _expand_divisor(self, idx, m, hash_id, range_begin, range_end, from_timestamp=None):
         """Hash a start offset into the first period, then step to range_end.
 
         The offset is drawn from the first period, [range_begin, range_begin +
@@ -1551,8 +1551,17 @@ class HashExpander:
         the step cannot reach a second value, so the result is that single value --
         emitting "{end}-{end}/{divisor}" instead would read as an explicit equal
         range, which croniter expands to the whole field.
+
+        Under ``expand_from_start_time`` the phase of the cycle comes from the start
+        time, not from the hash, so the declared range is emitted as written and the
+        re-basing in ``_expand`` supplies the phase inside it. Emitting the hashed
+        offset there instead would make re-basing read that offset as a declared
+        lower bound: ``H/15`` with an offset of 6 from a start at minute 2 would fire
+        at 17,32,47 rather than 2,17,32,47, losing one period an hour.
         """
         divisor = int(m["divisor"])
+        if from_timestamp is not None:
+            return f"{range_begin}-{range_end}/{divisor}"
         x = self.do(
             idx,
             hash_type=m["hash_type"],
@@ -1585,7 +1594,12 @@ class HashExpander:
                 raise CroniterBadCronError(f"Bad expression: {expr}")
 
             return self._expand_divisor(
-                idx, m, hash_id, int(m["range_begin"]), int(m["range_end"])
+                idx,
+                m,
+                hash_id,
+                int(m["range_begin"]),
+                int(m["range_end"]),
+                from_timestamp=kw.get("from_timestamp"),
             )
         if m["range_begin"] and m["range_end"]:
             # Example: H(0-29) -> 12
@@ -1604,7 +1618,12 @@ class HashExpander:
                 raise CroniterBadCronError(f"Bad expression: {expr}")
 
             return self._expand_divisor(
-                idx, m, hash_id, self.cron.RANGES[idx][0], self.cron.RANGES[idx][1]
+                idx,
+                m,
+                hash_id,
+                self.cron.RANGES[idx][0],
+                self.cron.RANGES[idx][1],
+                from_timestamp=kw.get("from_timestamp"),
             )
 
         # Example: H -> 32

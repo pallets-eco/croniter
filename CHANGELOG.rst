@@ -80,10 +80,14 @@ Bugfixes
   ``expand_from_start_time`` expansions — all seven fields, every legal lower bound,
   eight token shapes, seven steps, four start times — 73,898 contained at least one
   value outside the range the expression declares; now none do. Re-basing still
-  supplies the phase — ``*/15`` and ``5/15`` are unchanged — but the phase is advanced
-  to the first value inside the declared range, and where no value of the phase fits,
-  the expression is honoured as written, so an expansion can never come out empty.
-  [#255, @potiuk]
+  supplies the phase — ``*/15`` is unchanged, and so is ``5/15`` whenever the start
+  time's phase is at or above 5 (from minute 2 it now gives ``17,32,47``, not
+  ``2,17,32,47``) — but the phase is advanced to the first value inside the declared
+  range, and where no value of the phase fits, the expression is honoured as written,
+  so an expansion can never come out empty. Hashed and random divisors (``H/15``,
+  ``R/15``, ``H(10-50)/7``) take their phase from the start time inside their declared
+  range, exactly like ``*/15`` and ``10-50/7``: the hash offset is a phase, so it is not
+  read as a lower bound. [#255, @potiuk]
 
   Two side effects of overwriting the bound are fixed with it: colliding ``low`` onto
   ``high`` made an ordinary range read as an explicit equal range and expand to the
