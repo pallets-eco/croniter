@@ -647,3 +647,24 @@ class CroniterHashExpanderExpandYearsTest(CroniterHashExpanderBase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CroniterHashIdAcceptanceTest(base.TestCase):
+    def test_expand_accepts_a_str_hash_id(self):
+        # croniter("H H * * *", hash_id="hello") takes a str (see README), while
+        # croniter.expand() only understood bytes and failed with a bare
+        # TypeError from binascii.crc32().
+        self.assertEqual(
+            croniter.expand("H H * * *", hash_id="hello"),
+            croniter.expand("H H * * *", hash_id=b"hello"),
+        )
+
+    def test_expand_encodes_the_hash_id_as_utf8(self):
+        self.assertEqual(
+            croniter.expand("H H * * *", hash_id="olá"),
+            croniter.expand("H H * * *", hash_id="olá".encode("UTF-8")),
+        )
+
+    def test_expand_rejects_a_hash_id_of_another_type(self):
+        with self.assertRaises(TypeError):
+            croniter.expand("H H * * *", hash_id=42)
