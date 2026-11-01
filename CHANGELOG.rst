@@ -6,6 +6,7 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Fix day-of-month ``0`` being silently rewritten to ``1`` and accepted in the 6-field seconds form (e.g. ``0 0 0 * * *``): it is now rejected with ``CroniterBadCronError``, matching the 5-field form fixed for #9 and the 7-field years form. [#280]
 - Fix ``get_next``/``get_prev`` raising ``AssertionError`` for pytz timezones whose
   tzdb encoding uses a negative DST offset (for example ``Europe/Dublin``). At an
   ambiguous local time the resolution assumed the ``is_dst=True`` interpretation is
