@@ -645,10 +645,6 @@ class CroniterHashExpanderExpandYearsTest(CroniterHashExpanderBase):
         assert max(years) == 2050
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class CroniterHashIdAcceptanceTest(base.TestCase):
     def test_expand_accepts_a_str_hash_id(self):
         # croniter("H H * * *", hash_id="hello") takes a str (see README), while
@@ -662,9 +658,30 @@ class CroniterHashIdAcceptanceTest(base.TestCase):
     def test_expand_encodes_the_hash_id_as_utf8(self):
         self.assertEqual(
             croniter.expand("H H * * *", hash_id="olá"),
-            croniter.expand("H H * * *", hash_id="olá".encode("UTF-8")),
+            croniter.expand("H H * * *", hash_id="olá".encode()),
         )
 
     def test_expand_rejects_a_hash_id_of_another_type(self):
         with self.assertRaises(TypeError):
             croniter.expand("H H * * *", hash_id=42)
+
+    def test_expand_accepts_a_bytearray_hash_id(self):
+        # A bytearray is accepted by binascii.crc32, so it worked before and
+        # has to keep working.
+        self.assertEqual(
+            croniter.expand("H H * * *", hash_id=bytearray(b"hello")),
+            croniter.expand("H H * * *", hash_id=b"hello"),
+        )
+
+    def test_expand_tolerates_a_str_hash_id_with_a_lone_surrogate(self):
+        # A plain str.encode("UTF-8") raises UnicodeEncodeError here; the hash
+        # id is only salt, so it is encoded with surrogatepass instead.
+        lone = chr(0xD800)
+        self.assertEqual(
+            croniter.expand("H H * * *", hash_id=lone),
+            croniter.expand("H H * * *", hash_id=lone.encode("UTF-8", "surrogatepass")),
+        )
+
+
+if __name__ == "__main__":
+    unittest.main()
