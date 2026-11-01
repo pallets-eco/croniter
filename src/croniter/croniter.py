@@ -105,21 +105,23 @@ YEAR_FIELDS = (
     YEAR_FIELD,
 )
 
-step_search_re = re.compile(r"^([^-]+)-([^-/]+)(/(\d+))?$")
-only_int_re = re.compile(r"^\d+$")
+step_search_re = re.compile(r"^([^-]+)-([^-/]+)(/(\d+))?$", re.ASCII)
+only_int_re = re.compile(r"^\d+$", re.ASCII)
 
 DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 WEEKDAYS = "|".join(DOW_ALPHAS.keys())
 MONTHS = "|".join(M_ALPHAS.keys())
-star_or_int_re = re.compile(r"^(\d+|\*)$")
+star_or_int_re = re.compile(r"^(\d+|\*)$", re.ASCII)
 special_dow_re = re.compile(
     rf"^(?P<pre>((?P<he>(({WEEKDAYS})(-({WEEKDAYS}))?)"
-    rf"|(({MONTHS})(-({MONTHS}))?)|\w+)#)|l)(?P<last>\d+)$"
+    rf"|(({MONTHS})(-({MONTHS}))?)|\w+)#)|l)(?P<last>\d+)$",
+    re.ASCII,
 )
-nearest_weekday_re = re.compile(r"^(?:(\d+)w|w(\d+))$")
+nearest_weekday_re = re.compile(r"^(?:(\d+)w|w(\d+))$", re.ASCII)
 re_star = re.compile("[*]")
 hash_expression_re = re.compile(
-    r"^(?P<hash_type>h|r)(\((?P<range_begin>\d+)-(?P<range_end>\d+)\))?(\/(?P<divisor>\d+))?$"
+    r"^(?P<hash_type>h|r)(\((?P<range_begin>\d+)-(?P<range_end>\d+)\))?(\/(?P<divisor>\d+))?$",
+    re.ASCII,
 )
 
 CRON_FIELDS = {
@@ -204,15 +206,20 @@ def _add_tzinfo(
                 break
             return result, False
         except pytz.AmbiguousTimeError:
-            closer = localize(date, is_dst=not is_prev)
-            farther = localize(date, is_dst=is_prev)
-            # TODO: Check negative DST
-            assert (closer.astimezone(UTC_DT) > farther.astimezone(UTC_DT)) == is_prev
-            if _is_successor(closer, previous_date, is_prev):
-                result = closer
-            else:
-                assert _is_successor(farther, previous_date, is_prev)
-                result = farther
+            candidates = [
+                localize(date, is_dst=True),
+                localize(date, is_dst=False),
+            ]
+            # Depending on the sign of the zone's DST offset, either
+            # interpretation can be the earlier instant, so order by the
+            # actual absolute times instead of assuming is_dst ordering.
+            candidates.sort(key=lambda value: value.astimezone(UTC_DT))
+            if is_prev:
+                candidates.reverse()
+            for candidate in candidates:
+                if _is_successor(candidate, previous_date, is_prev):
+                    return candidate, True
+            return candidates[-1], True
         return result, True
 
     result = date.replace(fold=1 if is_prev else 0, tzinfo=previous_date.tzinfo)
@@ -930,11 +937,11 @@ class croniter:
             # but still let conversion happen if day field is shifted
             (field_index in [DAY_FIELD, MONTH_FIELD] and len_expressions == UNIX_CRON_LEN)
             or (
-                field_index in [DAY_FIELD, MONTH_FIELD, DOW_FIELD]
+                field_index in [DAY_FIELD, MONTH_FIELD]
                 and len_expressions == SECOND_CRON_LEN
             )
             or (
-                field_index in [DAY_FIELD, MONTH_FIELD, DOW_FIELD]
+                field_index in [DAY_FIELD, MONTH_FIELD]
                 and len_expressions == YEAR_CRON_LEN
             )
         ):

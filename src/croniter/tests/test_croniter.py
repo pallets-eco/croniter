@@ -1279,6 +1279,25 @@ class CroniterTest(base.TestCase):
         self.assertFalse(croniter.is_valid("* * * janu-jun *"))
         self.assertTrue(croniter.is_valid("H 0 * * *", hash_id="abc"))
 
+    def test_non_ascii_digits_rejected(self):
+        # `\d` and `int()` both accept any Unicode decimal digit, so Arabic-Indic,
+        # fullwidth or mathematical digits used to parse as their ASCII values.
+        for expr in (
+            "٥ * * * *",  # ARABIC-INDIC DIGIT FIVE
+            "０ ０ * * *",  # FULLWIDTH DIGIT ZERO
+            "\U0001d7d3 * * * *",  # MATHEMATICAL BOLD DIGIT FIVE
+            "*/١٥ * * * *",
+            "1-١٠ * * * *",
+            "0 0 ١٥w * *",
+            "0 0 * * 1#٢",
+            "0 0 * * l٥",
+            "H(٠-٢٩) * * * *",
+        ):
+            self.assertFalse(croniter.is_valid(expr, hash_id="abc"), expr)
+            self.assertRaises(
+                CroniterBadCronError, croniter, expr, datetime(2020, 1, 1), hash_id="abc"
+            )
+
     def test_is_valid_strict(self):
         # Feb 31 - never exists
         self.assertTrue(croniter.is_valid("0 0 31 2 *"))
@@ -1832,6 +1851,31 @@ class CroniterTest(base.TestCase):
                 "2022-03-26T00:00:00+02:00",
                 "2022-03-27T01:00:00+03:00",
                 "2022-03-28T00:00:00+03:00",
+            ],
+        )
+
+    def test_dst_negative_dst_zone_ambiguous_pytz(self):
+        """Test Europe/Dublin (negative DST encoding) fall-back ambiguity.
+
+        On 2019-10-27 local 01:00 occurs twice (IST +01:00 first, then
+        GMT +00:00), so both instants are valid fire times for an hourly
+        schedule. croniter used to raise AssertionError from the pytz
+        ambiguous-time handling instead of enumerating them.
+        """
+        tz = pytz.timezone("Europe/Dublin")
+        start = tz.localize(datetime(2019, 10, 26, 12, 0))
+        it = croniter("0 1 * * *", start)
+        ret = [
+            it.get_next(datetime).isoformat(),
+            it.get_next(datetime).isoformat(),
+            it.get_next(datetime).isoformat(),
+        ]
+        self.assertEqual(
+            ret,
+            [
+                "2019-10-27T01:00:00+01:00",
+                "2019-10-27T01:00:00+00:00",
+                "2019-10-28T01:00:00+00:00",
             ],
         )
 
@@ -2942,6 +2986,15 @@ class CroniterTest(base.TestCase):
     def test_revert_issue_90_aka_support_dow7(self):
         self.assertTrue(croniter.is_valid("* * * * 1-7"))
         self.assertTrue(croniter.is_valid("* * * * 7"))
+
+    def test_dow7_sunday_in_second_and_year_forms(self):
+        # Sunday is 0 or 7 in every field-count form, not only the 5-field one
+        for expr, sunday in [
+            ("0 0 * * 7 0", "0 0 * * 0 0"),  # 6 fields (seconds)
+            ("0 0 * * 7 0 *", "0 0 * * 0 0 *"),  # 7 fields (seconds + year)
+        ]:
+            self.assertTrue(croniter.is_valid(expr))
+            self.assertEqual(croniter.expand(expr)[0][4], croniter.expand(sunday)[0][4])
 
     def test_sunday_ranges_to(self):
         self._test_sunday_ranges("0 0 * * Sun-Sun", list(range(2, 32)))
