@@ -944,9 +944,14 @@ class croniter:
     @classmethod
     def _expand(cls, expr_format, hash_id=None, second_at_beginning=False, from_timestamp=None, from_timestamp_tz=None, strict=False, strict_year=None):
         if hash_id is not None and not isinstance(hash_id, bytes):
-            if not isinstance(hash_id, str):
+            if isinstance(hash_id, bytearray):
+                hash_id = bytes(hash_id)
+            elif isinstance(hash_id, str):
+                # surrogatepass keeps a str with a lone surrogate usable here
+                # instead of raising a bare UnicodeEncodeError from crc32().
+                hash_id = hash_id.encode("UTF-8", "surrogatepass")
+            else:
                 raise TypeError("hash_id must be bytes or UTF-8 string")
-            hash_id = hash_id.encode("UTF-8")
         # Split the expression in components, and normalize L -> l, MON -> mon,
         # etc. Keep expr_format untouched so we can use it in the exception
         # messages.
