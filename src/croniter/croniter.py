@@ -107,6 +107,9 @@ YEAR_FIELDS = (
 
 step_search_re = re.compile(r"^([^-]+)-([^-/]+)(/(\d+))?$", re.ASCII)
 only_int_re = re.compile(r"^\d+$", re.ASCII)
+# ``str.split()`` also splits on Unicode whitespace (no-break space, ideographic
+# space, ...), which cron does not treat as a field separator.
+field_re = re.compile(r"\S+", re.ASCII)
 
 DAYS = (31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31)
 WEEKDAYS = "|".join(DOW_ALPHAS.keys())
@@ -973,7 +976,7 @@ class croniter:
         except KeyError:
             pass
 
-        expressions = efl.split()
+        expressions = field_re.findall(efl)
 
         if len(expressions) not in VALID_LEN_EXPRESSION:
             raise CroniterBadCronError(

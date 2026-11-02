@@ -6,6 +6,11 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Reject non-ASCII whitespace between cron fields. ``str.split()`` splits on any
+  Unicode whitespace, so ``0 0 * * *`` written with a no-break space or an
+  ideographic space between the fields passed ``is_valid`` and ran as ``0 0 * * *``,
+  while cron only separates fields on spaces and tabs. These now raise
+  ``CroniterBadCronError``. Follow-up to #284. [@Raghuvardhan-Reddy78]
 - Fix day-of-month ``0`` being silently rewritten to ``1`` and accepted in the 6-field seconds form (e.g. ``0 0 0 * * *``): it is now rejected with ``CroniterBadCronError``, matching the 5-field form fixed for #9 and the 7-field years form. [#280]
 - Fix ``get_next``/``get_prev`` raising ``AssertionError`` for pytz timezones whose
   tzdb encoding uses a negative DST offset (for example ``Europe/Dublin``). At an
