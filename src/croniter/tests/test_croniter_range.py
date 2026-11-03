@@ -2,7 +2,7 @@
 
 import unittest
 import zoneinfo
-from datetime import datetime
+from datetime import date, datetime
 
 import pytz
 
@@ -277,6 +277,13 @@ class CroniterRangeTest(base.TestCase):
                 "2019-04-07T02:26:00+10:00",
             ],
         )
+
+    def test_date_bounds(self):
+        days = [datetime(2020, 1, 1), datetime(2020, 1, 2), datetime(2020, 1, 3)]
+        fwd = list(croniter_range(date(2020, 1, 1), date(2020, 1, 3), "0 0 * * *"))
+        self.assertEqual(fwd, days)
+        rev = list(croniter_range(date(2020, 1, 3), date(2020, 1, 1), "0 0 * * *"))
+        self.assertEqual(rev, days[::-1])
 
     def test_year_range(self):
         start = datetime(2010, 1, 1)

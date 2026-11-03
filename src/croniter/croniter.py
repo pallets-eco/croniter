@@ -177,9 +177,10 @@ def _instant(date: datetime.datetime) -> datetime.datetime:
 
     Comparing two aware datetimes that share a tzinfo ignores that tzinfo and
     compares the wall clocks, so across a DST transition the comparison
-    disagrees with the order the instants actually occurred in.
+    disagrees with the order the instants actually occurred in. Naive datetimes
+    and plain dates pass through unchanged.
     """
-    if date.utcoffset() is None:
+    if not isinstance(date, datetime.datetime) or date.utcoffset() is None:
         return date
     return date.astimezone(UTC_DT)
 
@@ -190,7 +191,7 @@ def _shift(date: datetime.datetime, delta: relativedelta) -> datetime.datetime:
     Arithmetic on an aware datetime moves the wall clock and resets ``fold``, so
     a step of one microsecond can move the instant by a whole DST offset.
     """
-    if date.utcoffset() is None:
+    if not isinstance(date, datetime.datetime) or date.utcoffset() is None:
         return date + delta
     return (_instant(date) + delta).astimezone(date.tzinfo)
 
