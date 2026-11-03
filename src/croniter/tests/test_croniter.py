@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import random
 import subprocess
 import sys
@@ -2135,8 +2136,15 @@ class CroniterTest(base.TestCase):
             "bad = [e for e in ('0 0 * * 1#0', '0 0 * * 1#7') if croniter.is_valid(e)]\n"
             "sys.exit(repr(bad) if bad else 0)\n"
         )
+        # Point the child at the croniter under test, not whatever it resolves.
+        module_file = sys.modules[croniter.__module__].__file__
+        src_dir = os.path.dirname(os.path.dirname(os.path.abspath(module_file)))
         proc = subprocess.run(
-            [sys.executable, "-O", "-c", code], capture_output=True, text=True, check=False
+            [sys.executable, "-O", "-c", code],
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, "PYTHONPATH": src_dir},
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
