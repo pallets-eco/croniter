@@ -6,6 +6,11 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Reject hashed and random ranges whose bounds lie outside their field, such as
+  ``H(0-99)`` in the minute field. The bounds were only checked through the value drawn
+  from them, so such an expression was valid for some hash ids and not others, and
+  ``is_valid("R(0-99) * * * *")`` returned ``True`` or ``False`` depending on the draw.
+  They now raise ``CroniterBadCronError`` for every hash id and draw. [@Raghuvardhan-Reddy78]
 - ``max_years_between_matches`` must be an ``int`` greater than or equal to 1, or ``None``.
   ``bool`` is rejected (``True`` used to become 1 via ``int(True)``). ``0``, negatives,
   floats, and strings are rejected too: ``0`` and negatives used to be raised to 1,

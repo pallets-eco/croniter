@@ -198,6 +198,34 @@ class CroniterHashTest(CroniterHashBase):
                         seen.add(value)
                 self.assertEqual(sorted(seen), list(range(begin, end + 1)))
 
+    def test_hash_range_outside_field(self):
+        """A hashed or random range must lie inside its field.
+
+        The bounds were only checked through the value drawn from them, so
+        "H(0-99)" in the minute field was accepted for the hash ids landing on
+        0-59 and rejected for the rest, and is_valid("R(0-99) * * * *") changed
+        its answer from one call to the next.
+        """
+        for expr in [
+            "H(0-99) * * * *",
+            "* H(20-30) * * *",
+            "* * H(0-5) * *",
+            "* * H(0-20)/5 * *",
+            "* * * H(0-12) *",
+            "* * * * H(0-8)",
+            "* * * * * H(30-60)",
+            "0 0 1 1 * 0 H(1960-1980)",
+        ]:
+            with self.subTest(expr=expr):
+                for i in range(100):
+                    with self.assertRaises(CroniterBadCronError):
+                        croniter(expr, hash_id=str(i))
+                for _ in range(100):
+                    self.assertFalse(croniter.is_valid(expr.replace("H", "R")))
+        # 7 is Sunday in day-of-week, inside a hashed range as anywhere else.
+        for i in range(100):
+            self.assertTrue(croniter.is_valid("* * * * H(0-7)", hash_id=str(i)))
+
     def test_hash_invalid_range(self):
         """Test validation logic for range_begin and range_end values"""
         try:
