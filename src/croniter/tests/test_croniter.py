@@ -1301,6 +1301,21 @@ class CroniterTest(base.TestCase):
                 CroniterBadCronError, croniter, expr, datetime(2020, 1, 1), hash_id="abc"
             )
 
+    def test_non_ascii_whitespace_rejected(self):
+        # `str.split()` splits on any Unicode whitespace, so a no-break space or an
+        # ideographic space used to separate fields the way a space does.
+        for expr in (
+            "0\u00a00 * * *",  # NO-BREAK SPACE
+            "0\u30000 * * *",  # IDEOGRAPHIC SPACE
+            "0\u20030 * * *",  # EM SPACE
+            "0\u00850 * * *",  # NEXT LINE
+            "0 0 * * *\u00a0",
+        ):
+            self.assertFalse(croniter.is_valid(expr), expr)
+            self.assertRaises(CroniterBadCronError, croniter, expr, datetime(2020, 1, 1))
+        # ASCII whitespace still separates fields, repeated or around the expression.
+        self.assertTrue(croniter.is_valid(" 0\t0  *\n* *\n"))
+
     def test_is_valid_strict(self):
         # Feb 31 - never exists
         self.assertTrue(croniter.is_valid("0 0 31 2 *"))
