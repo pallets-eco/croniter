@@ -6,6 +6,11 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- ``max_years_between_matches`` must be an ``int`` greater than or equal to 1, or ``None``.
+  ``bool`` is rejected (``True`` used to become 1 via ``int(True)``). ``0``, negatives,
+  floats, and strings are rejected too: ``0`` and negatives used to be raised to 1,
+  floats were truncated, and numeric strings were parsed by ``int()``. A bad type
+  raises ``TypeError``. An int below 1 raises ``ValueError``. [#272]
 - Reject non-ASCII whitespace between cron fields. ``str.split()`` splits on any
   Unicode whitespace, so ``0 0 * * *`` written with a no-break space or an
   ideographic space between the fields passed ``is_valid`` and ran as ``0 0 * * *``,
