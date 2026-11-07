@@ -19,6 +19,7 @@ from croniter import (
     CroniterNotAlphaError,
     CroniterUnsupportedSyntaxError,
     croniter,
+    croniter_range,
     datetime_to_timestamp,
 )
 from croniter.croniter import VALID_LEN_EXPRESSION
@@ -1896,6 +1897,104 @@ class CroniterTest(base.TestCase):
                 "2019-10-28T01:00:00+00:00",
             ],
         )
+
+    def test_dst_gap_shift_is_not_a_fire_time(self):
+        """Lord Howe jumps forward by 30 minutes: 02:00 (+10:30) -> 02:30 (+11:00).
+
+        For the hourly schedule ``0 * * * *`` the 02:00 slot does not exist on
+        2019-10-06, and the alternative resolution walks forward to 02:30,
+        which the expression does not name (minute 30 vs minute 0). Before the
+        fix every one of ``get_next``, ``get_prev``, ``match`` and
+        ``croniter_range`` could surface that manufactured 02:30 as a fire
+        time; they must now all skip it.
+        """
+        tz = zoneinfo.ZoneInfo("Australia/Lord_Howe")
+
+        # ``get_next`` from 01:43 already returned 03:00 on main, but from
+        # 01:03 main returned the gap-shifted 02:30+11:00. Cover both paths.
+        nxt_from_late = croniter("0 * * * *", datetime(2019, 10, 6, 1, 43, tzinfo=tz)).get_next(
+            datetime
+        )
+        self.assertEqual(nxt_from_late.isoformat(), "2019-10-06T03:00:00+11:00")
+
+        nxt = croniter("0 * * * *", datetime(2019, 10, 6, 1, 3, tzinfo=tz)).get_next(datetime)
+        self.assertEqual(nxt.isoformat(), "2019-10-06T03:00:00+11:00")
+
+        prv = croniter("0 * * * *", nxt).get_prev(datetime)
+        self.assertEqual(prv.isoformat(), "2019-10-06T01:00:00+10:30")
+        self.assertLess(prv, datetime(2019, 10, 6, 1, 3, tzinfo=tz))
+
+        self.assertFalse(croniter.match("0 * * * *", datetime(2019, 10, 6, 2, 30, tzinfo=tz)))
+        # 02:30 is a legitimate fire time when the expression names minute 30.
+        self.assertTrue(croniter.match("0,30 * * * *", datetime(2019, 10, 6, 2, 30, tzinfo=tz)))
+
+        # ``croniter_range`` walks the same _calc code through the gap and
+        # must not list 02:30 either, forward or reverse.
+        forward = [
+            r.isoformat()
+            for r in croniter_range(
+                datetime(2019, 10, 6, 0, 0, tzinfo=tz),
+                datetime(2019, 10, 6, 5, 0, tzinfo=tz),
+                "0 * * * *",
+            )
+        ]
+        self.assertEqual(
+            forward,
+            [
+                "2019-10-06T00:00:00+10:30",
+                "2019-10-06T01:00:00+10:30",
+                "2019-10-06T03:00:00+11:00",
+                "2019-10-06T04:00:00+11:00",
+                "2019-10-06T05:00:00+11:00",
+            ],
+        )
+        self.assertNotIn("2019-10-06T02:30:00+11:00", forward)
+
+        reverse = [
+            r.isoformat()
+            for r in croniter_range(
+                datetime(2019, 10, 6, 5, 0, tzinfo=tz),
+                datetime(2019, 10, 6, 0, 0, tzinfo=tz),
+                "0 * * * *",
+            )
+        ]
+        self.assertEqual(
+            reverse,
+            [
+                "2019-10-06T05:00:00+11:00",
+                "2019-10-06T04:00:00+11:00",
+                "2019-10-06T03:00:00+11:00",
+                "2019-10-06T01:00:00+10:30",
+                "2019-10-06T00:00:00+10:30",
+            ],
+        )
+        self.assertNotIn("2019-10-06T02:30:00+11:00", reverse)
+
+    def test_dst_gap_shift_is_not_a_fire_time_pytz(self):
+        """Lord Howe jumps forward by 30 minutes: 02:00 (+10:30) -> 02:30 (+11:00).
+
+        Same schedule as the zoneinfo variant: the gap-shifted 02:30 wall
+        clock must not be reported by ``get_next``, ``get_prev``,
+        ``match`` or ``croniter_range`` as a fire time of ``0 * * * *``.
+        """
+        tz = pytz.timezone("Australia/Lord_Howe")
+        start = tz.localize(datetime(2019, 10, 6, 1, 43))
+        nxt = croniter("0 * * * *", start).get_next(datetime)
+        self.assertEqual(nxt.isoformat(), "2019-10-06T03:00:00+11:00")
+
+        # ``get_next`` from 01:03 returned the gap-shifted 02:30+11:00 on main.
+        nxt_from_early = croniter("0 * * * *", tz.localize(datetime(2019, 10, 6, 1, 3))).get_next(
+            datetime
+        )
+        self.assertEqual(nxt_from_early.isoformat(), "2019-10-06T03:00:00+11:00")
+
+        prv = croniter("0 * * * *", nxt).get_prev(datetime)
+        self.assertEqual(prv.isoformat(), "2019-10-06T01:00:00+10:30")
+        self.assertLess(prv, start)
+
+        self.assertFalse(croniter.match("0 * * * *", tz.localize(datetime(2019, 10, 6, 2, 30))))
+        # 02:30 is a legitimate fire time when the expression names minute 30.
+        self.assertTrue(croniter.match("0,30 * * * *", tz.localize(datetime(2019, 10, 6, 2, 30))))
 
     def test_nth_wday_simple(self):
         def f(y, m, w):
