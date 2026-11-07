@@ -10,7 +10,7 @@ Bugfixes
   ``H(0-99)`` in the minute field. The bounds were only checked through the value drawn
   from them, so such an expression was valid for some hash ids and not others, and
   ``is_valid("R(0-99) * * * *")`` returned ``True`` or ``False`` depending on the draw.
-  They now raise ``CroniterBadCronError`` for every hash id and draw. [@Raghuvardhan-Reddy78]
+  They now raise ``CroniterBadCronError`` for every hash id and draw. [#289, @Raghuvardhan-Reddy78]
 - Reject non-ASCII whitespace between cron fields. ``str.split()`` splits on any
   Unicode whitespace, so ``0 0 * * *`` written with a no-break space or an
   ideographic space between the fields passed ``is_valid`` and ran as ``0 0 * * *``,
