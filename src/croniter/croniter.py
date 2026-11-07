@@ -1603,6 +1603,13 @@ class HashExpander:
         if m["range_begin"] and m["range_end"]:
             if int(m["range_begin"]) >= int(m["range_end"]):
                 raise CroniterBadCronError("Range end must be greater than range begin")
+            # Check the bounds themselves, not just the value drawn from them: otherwise
+            # "H(0-99)" in the minute field is valid or not depending on the hash id, and
+            # "R(0-99)" depending on the draw.
+            field_min, field_max = self.cron.RANGES[idx]
+            for bound in (int(m["range_begin"]), int(m["range_end"])):
+                if not field_min <= self.cron.value_alias(bound, idx) <= field_max:
+                    raise CroniterBadCronError(f"[{expr}] is not acceptable, out of range")
 
         if m["range_begin"] and m["range_end"] and m["divisor"]:
             # Example: H(30-59)/10 -> 34-59/10 (i.e. 34,44,54)
