@@ -1,7 +1,7 @@
 Changelog
 ==============
 
-6.3.0 (unreleased)
+6.3.0 (2026-11-08)
 ------------------
 
 Bugfixes
@@ -38,6 +38,7 @@ Bugfixes
   and ``\w``, and ``int()`` also accepts any Unicode decimal digit, so ``٥ * * * *``
   (Arabic-Indic five) or ``０ ０ * * *`` (fullwidth zeros) passed ``is_valid`` and ran as
   ``5 * * * *`` and ``0 0 * * *``. These now raise ``CroniterBadCronError``.
+  [#284, @Raghuvardhan-Reddy78]
 - Fix ``get_next``, ``get_prev``, ``match`` and ``croniter_range`` reporting a DST gap shift
   as a fire time. When a cron slot fell into a spring-forward gap and resolving the
   alternative across the offset change walked forward to the next existing wall clock, that
@@ -195,8 +196,11 @@ Testing and Documentation
 
 Packaging
 ~~~~~~~~~
-- Bump pinned GitHub Actions via dependabot. [6e69553, #247; 3c6ce9b, #251]
-- Bump pinned build dependencies (``hatchling``) via dependabot. [70564f2, #245]
+- Bump pinned GitHub Actions via dependabot. [6e69553, #247; 3c6ce9b, #251; d2e8a13, #260;
+  d9f40f0, #269; 4be99c3, #274; 9fe300d, #285; 2725ef5, #290]
+- Bump pinned build dependencies (``hatchling``, ``packaging``) via dependabot.
+  [70564f2, #245; 3dd4d14, #262; e3ba628, #265; 309703f, #283; b4c7661, #291]
+- Remove the unused workflow that built the 32-bit Docker test images. [1b0c241, #292, @potiuk]
 
 
 6.2.4 (2026-07-10)
