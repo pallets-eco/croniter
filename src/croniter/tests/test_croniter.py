@@ -2369,7 +2369,7 @@ class CroniterTest(base.TestCase):
         it = croniter(cron, start, day_or=False, max_years_between_matches=5)
         self.assertEqual(it.get_next(datetime), datetime(2025, 1, 8, 13))
 
-    def test_max_years_between_matches_rejects_bool(self):
+    def test_max_years_between_matches_validation(self):
         # An int >= 1, or None. bool is not an int here. 0, negatives, floats,
         # and strings used to be coerced (0 and negatives became 1, floats
         # were truncated, numeric strings went through int()).
