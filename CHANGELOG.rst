@@ -1,8 +1,101 @@
 Changelog
 ==============
 
-6.3.0 (2026-11-08)
+7.0.0 (2026-11-08)
 ------------------
+
+This is a major release because several bug fixes change what existing, valid
+expressions mean. Read **Upgrading to 7.0** before you upgrade. Every change is
+listed in full under *Bugfixes*.
+
+Upgrading to 7.0
+~~~~~~~~~~~~~~~~
+
+Changes 1 and 2 are silent: nothing fails, schedules just fire at different times.
+Changes 3 and 4 raise an exception.
+
+**1. A step that starts at the field maximum now means one value, not the whole field (#246).**
+Each field's maximum is ``59`` for seconds and minutes, ``23`` for hours, ``31`` for
+day-of-month, ``12``/``DEC`` for month, ``6``/``SAT`` (or ``7``) for day-of-week and
+``2099`` for years.
+
+- *Who is affected:* any expression in which a field starts with its maximum
+  followed by ``/``, for example ``59/15``, ``23/6``, ``31/5``, ``DEC/3``,
+  ``SAT/2``, ``6/1`` or ``2099/1``.
+- *What to do:* find these expressions in your code, configuration and stored data.
+  A field value such as ``59/...`` or ``6/...`` is the pattern to look for. Decide
+  what each one was meant to do:
+
+  - It meant "every": replace it with ``*`` or ``*/{step}``. ``* * * * 6/1``
+    becomes ``* * * * *``, and ``59/15 * * * *`` becomes ``*/15 * * * *``.
+  - It meant "only the maximum": no change is needed, because 7.0 now does that.
+  - It is in a year field (``2099/1``) or on a day that can be missing
+    (``31/5`` with month ``2``): the expression may now have no future match and
+    raise ``CroniterBadDateError`` (see 4 below). Rewrite it with ``*``.
+
+**2. ``expand_from_start_time=True`` keeps the bounds of ranges (#255, #256, #246).**
+If you never pass ``expand_from_start_time``, skip this item: default-mode schedules
+are unchanged.
+
+- *Who is affected:* expressions with an explicit range, an equal range such as
+  ``1-1/3``, a wrapping range such as ``6-0``, or a stepped start such as ``5/15``.
+  In 6.x such a range could fire outside its own bounds, so ``* 8-17 * * *``
+  fired at hours 0-17. The phase was also read in UTC instead of the start time's
+  own time zone.
+- *What to do:* for each schedule that uses the flag, compare the old and new
+  ``expanded`` values. Install 7.0 in a separate environment, or run the snippet
+  below under both versions with your own expressions, start times and time zones:
+
+  .. code-block:: python
+
+      from datetime import datetime, timezone
+      from croniter import croniter
+
+      start = datetime(2026, 1, 1, 7, 7, tzinfo=timezone.utc)  # use your real start
+      for expr in ["* 8-17 * * *", "5/15 * * * *"]:            # your expressions
+          print(expr, croniter(expr, start, expand_from_start_time=True).expanded)
+
+  Where the output differs, 7.0 matches the expression as written. If you relied
+  on the old output, write that schedule out explicitly, for example as a list
+  of values, instead of relying on the flag. A schedule can now fire less often
+  (``45/15`` fires once an hour, not four times), or more often in the case of
+  equal and wrapping ranges (``1-1/15`` in the minute field fires four times an
+  hour). See the warning under #255 for the full breakdown.
+
+**3. Some expressions that used to be accepted now raise ``CroniterBadCronError``.**
+
+- *Who is affected:* expressions containing any of the following:
+
+  - non-ASCII digits or non-ASCII whitespace (#284, #288);
+  - a ``H(a-b)`` or ``R(a-b)`` range outside its field (#289);
+  - day-of-month ``0`` in the 6-field seconds form (#280);
+  - an out-of-range ``#`` such as ``1#0`` or ``1#7`` (#278).
+
+- *What to do:* where expressions come from users or storage, check them with
+  ``croniter.is_valid()`` before you upgrade, and fix the ones that fail. Each
+  rejected form either matched something the text did not say or depended on the
+  hash id, so there is no behaviour to keep.
+
+**4. Some schedules now raise ``CroniterBadDateError`` or ``TypeError``/``ValueError``.**
+
+- An expression changed by item 1 can have no remaining match. ``get_next`` then
+  raises ``CroniterBadDateError``, so rewrite the expression as described in item 1.
+- ``max_years_between_matches`` must now be an ``int`` >= 1 or ``None`` (#272).
+  Replace ``True`` with ``1``, ``0`` or a negative number with ``1``, and pass
+  ``int(...)`` instead of a float or string.
+
+**Other changes in behaviour.** These are corrections of wrong results, and no
+action is expected:
+
+- ``get_next``, ``get_prev``, ``match`` and ``croniter_range`` no longer report
+  times invented inside a DST gap (#266).
+- pytz zones with negative DST offsets, such as ``Europe/Dublin``, no longer crash
+  (#267).
+- Day-of-week ``7`` is accepted in the 6- and 7-field forms (#263).
+- A few hashed divisions wider than their range (``H/60``, ``H/100``) produce
+  different values (#253).
+
+If you cannot audit your expressions yet, pin ``croniter<7``.
 
 Bugfixes
 ~~~~~~~~
