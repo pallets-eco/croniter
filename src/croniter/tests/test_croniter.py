@@ -2369,6 +2369,22 @@ class CroniterTest(base.TestCase):
         it = croniter(cron, start, day_or=False, max_years_between_matches=5)
         self.assertEqual(it.get_next(datetime), datetime(2025, 1, 8, 13))
 
+    def test_max_years_between_matches_validation(self):
+        # An int >= 1, or None. bool is not an int here. 0, negatives, floats,
+        # and strings used to be coerced (0 and negatives became 1, floats
+        # were truncated, numeric strings went through int()).
+        start = datetime(2020, 9, 24)
+        for bad in (True, False, 2.9, "5", "abc"):
+            with self.assertRaises(TypeError) as ctx:
+                croniter("0 0 * * *", start, max_years_between_matches=bad)
+            self.assertIn("int >= 1", str(ctx.exception))
+        for bad in (0, -3):
+            with self.assertRaises(ValueError) as ctx:
+                croniter("0 0 * * *", start, max_years_between_matches=bad)
+            self.assertIn("int >= 1", str(ctx.exception))
+        it = croniter("0 0 * * *", start, max_years_between_matches=1)
+        self.assertEqual(it._max_years_between_matches, 1)
+
     def test_explicit_year_forward(self):
         start = datetime(2020, 9, 24)
         cron = "0 13 8 1,4,7,10 wed"
