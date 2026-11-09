@@ -6,6 +6,16 @@ Changelog
 
 Bugfixes
 ~~~~~~~~
+- Fix the day-of-month / day-of-week OR rule being dropped when the other day field is
+  a ``*/N`` step. A day field that expands to every value is collapsed to ``*`` unless
+  its sibling is restricted, and that check looked for a ``*`` anywhere in the sibling,
+  so a step like ``*/5`` passed for the bare wildcard and the two fields were ANDed.
+  This changes schedules: ``0 0 */5 * 0-6`` and ``0 0 */5 * sun-sat`` now fire every day
+  instead of on days 1, 6, 11, ..., ``0 0 1-31 * */2`` fires every day instead of only
+  on Sunday, Tuesday, Thursday and Saturday, ``croniter.match('0 0 */5 * 0-6',
+  datetime(2026, 11, 10))`` is now ``True``, and ``.expanded`` keeps such a day field as
+  the full list of values instead of ``*``. To keep the old AND behaviour for day fields
+  that start with ``*``, use ``implement_cron_bug=True``, which is unchanged. [#271]
 - Reject non-ASCII whitespace between cron fields. ``str.split()`` splits on any
   Unicode whitespace, so ``0 0 * * *`` written with a no-break space or an
   ideographic space between the fields passed ``is_valid`` and ran as ``0 0 * * *``,

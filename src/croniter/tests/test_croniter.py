@@ -236,6 +236,13 @@ class CroniterTest(base.TestCase):
             [(d.year, d.month, d.day) for d in got],
             [(2026, 11, 10), (2026, 11, 11), (2026, 11, 12)],
         )
+        # Same the other way round: a "*/2" day-of-week next to a full day-of-month.
+        itr = croniter("0 0 1-31 * */2", datetime(2026, 11, 9))
+        got = [itr.get_next(datetime) for _ in range(3)]
+        self.assertEqual(
+            [(d.year, d.month, d.day) for d in got],
+            [(2026, 11, 10), (2026, 11, 11), (2026, 11, 12)],
+        )
 
     def test_impossible_day_of_month_alone_still_raises(self):
         # With no day-of-week to fall back on there really is no such date.
