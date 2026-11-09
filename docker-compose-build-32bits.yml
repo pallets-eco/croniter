@@ -1,5 +1,0 @@
-services:
-  app:
-    build:
-      args:
-        BASE: "debian-32:trixie"
