@@ -226,6 +226,24 @@ class CroniterHashTest(CroniterHashBase):
         for i in range(100):
             self.assertTrue(croniter.is_valid("* * * * H(0-7)", hash_id=str(i)))
 
+    def test_is_valid_empty_hash_id(self):
+        """is_valid treats an empty hash_id like the constructor does"""
+        for expr in ("H H * * *", "@daily"):
+            with self.subTest(expr=expr):
+                croniter(expr, hash_id="")
+                self.assertTrue(croniter.is_valid(expr, hash_id=""))
+                self.assertTrue(croniter.is_valid(expr, hash_id=b""))
+        self.assertFalse(croniter.is_valid("H H * * *"))
+
+    def test_is_valid_falsy_non_string_hash_id(self):
+        """Falsy hash_id values of the wrong type are rejected, as in the constructor"""
+        for hash_id in (0, False, [], ()):
+            with self.subTest(hash_id=hash_id):
+                with self.assertRaises(TypeError):
+                    croniter("* * * * *", hash_id=hash_id)
+                with self.assertRaises(TypeError):
+                    croniter.is_valid("* * * * *", hash_id=hash_id)
+
     def test_hash_invalid_range(self):
         """Test validation logic for range_begin and range_end values"""
         try:

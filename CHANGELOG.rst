@@ -4,6 +4,12 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+Bugfixes
+~~~~~~~~
+- ``is_valid()`` now checks ``hash_id is not None`` like the constructor, instead of its truthiness.
+  An empty string ``hash_id`` used to raise ``TypeError`` from ``is_valid()`` although
+  ``croniter()`` accepts it, and falsy values of the wrong type such as ``0`` were not rejected.
+
 
 7.0.0 (2026-11-08)
 ------------------
