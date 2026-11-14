@@ -1427,7 +1427,7 @@ class croniter:
 
     @classmethod
     def is_valid(cls, expression, hash_id=None, encoding="UTF-8", second_at_beginning=False, strict=False, strict_year=None):
-        if hash_id:
+        if hash_id is not None:
             if not isinstance(hash_id, (bytes, str)):
                 raise TypeError("hash_id must be bytes or UTF-8 string")
             if not isinstance(hash_id, bytes):
