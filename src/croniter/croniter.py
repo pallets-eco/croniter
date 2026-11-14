@@ -163,6 +163,14 @@ def _last_day_of_month(year: int, month: int) -> int:
     return last_day
 
 
+def _shift_months(d: datetime.datetime, months: int) -> datetime.datetime:
+    """Shift `d` by whole calendar months, clamping the day of month."""
+    month = d.month - 1 + months
+    year = d.year + month // 12
+    month = month % 12 + 1
+    return d.replace(year=year, month=month, day=min(d.day, _last_day_of_month(year, month)))
+
+
 def _is_successor(
     date: datetime.datetime, previous_date: datetime.datetime, is_prev: bool
 ) -> bool:
@@ -571,15 +579,14 @@ class croniter:
     ) -> datetime.datetime:
         if is_prev:
             nearest_diff_method = self._get_prev_nearest_diff
-            offset = relativedelta(microseconds=-1)
+            unaware_time = now.replace(tzinfo=None) - datetime.timedelta(microseconds=1)
         else:
             nearest_diff_method = self._get_next_nearest_diff
             if len(expanded) > UNIX_CRON_LEN:
-                offset = relativedelta(seconds=1)
+                unaware_time = now.replace(tzinfo=None) + datetime.timedelta(seconds=1)
             else:
-                offset = relativedelta(minutes=1)
+                unaware_time = now.replace(tzinfo=None) + datetime.timedelta(minutes=1)
         # Calculate the next cron time in local time a.k.a. timezone unaware time.
-        unaware_time = now.replace(tzinfo=None) + offset
         if len(expanded) > UNIX_CRON_LEN:
             unaware_time = unaware_time.replace(microsecond=0)
         else:
@@ -599,12 +606,22 @@ class croniter:
                         return None, d
                     if diff_year != 0:
                         if is_prev:
-                            d += relativedelta(
-                                years=diff_year, month=12, day=31, hour=23, minute=59, second=59
+                            d = d.replace(
+                                year=d.year + diff_year,
+                                month=12,
+                                day=31,
+                                hour=23,
+                                minute=59,
+                                second=59,
                             )
                         else:
-                            d += relativedelta(
-                                years=diff_year, month=1, day=1, hour=0, minute=0, second=0
+                            d = d.replace(
+                                year=d.year + diff_year,
+                                month=1,
+                                day=1,
+                                hour=0,
+                                minute=0,
+                                second=0,
                             )
                         return True, d
             return False, d
@@ -620,12 +637,18 @@ class croniter:
 
                 if diff_month is not None and diff_month != 0:
                     if is_prev:
-                        d += relativedelta(months=diff_month)
+                        d = _shift_months(d, diff_month)
                         reset_day = _last_day_of_month(d.year, d.month)
-                        d += relativedelta(day=reset_day, hour=23, minute=59, second=59)
+                        d = d.replace(day=reset_day, hour=23, minute=59, second=59)
                     else:
-                        d += relativedelta(
-                            months=diff_month, day=reset_day, hour=0, minute=0, second=0
+                        month = d.month - 1 + diff_month
+                        d = d.replace(
+                            year=d.year + month // 12,
+                            month=month % 12 + 1,
+                            day=reset_day,
+                            hour=0,
+                            minute=0,
+                            second=0,
                         )
                     return True, d
             return False, d
@@ -648,9 +671,13 @@ class croniter:
 
                 if diff_day is not None and diff_day != 0:
                     if is_prev:
-                        d += relativedelta(days=diff_day, hour=23, minute=59, second=59)
+                        d = (d + datetime.timedelta(days=diff_day)).replace(
+                            hour=23, minute=59, second=59
+                        )
                     else:
-                        d += relativedelta(days=diff_day, hour=0, minute=0, second=0)
+                        d = (d + datetime.timedelta(days=diff_day)).replace(
+                            hour=0, minute=0, second=0
+                        )
                     return True, d
             return False, d
 
@@ -661,9 +688,13 @@ class croniter:
                 diff_day_of_week = nearest_diff_method(d.isoweekday() % 7, expanded[DOW_FIELD], 7)
                 if diff_day_of_week is not None and diff_day_of_week != 0:
                     if is_prev:
-                        d += relativedelta(days=diff_day_of_week, hour=23, minute=59, second=59)
+                        d = (d + datetime.timedelta(days=diff_day_of_week)).replace(
+                            hour=23, minute=59, second=59
+                        )
                     else:
-                        d += relativedelta(days=diff_day_of_week, hour=0, minute=0, second=0)
+                        d = (d + datetime.timedelta(days=diff_day_of_week)).replace(
+                            hour=0, minute=0, second=0
+                        )
                     return True, d
             return False, d
 
@@ -692,19 +723,27 @@ class croniter:
 
             if not candidates:
                 if is_prev:
-                    d += relativedelta(days=-d.day, hour=23, minute=59, second=59)
+                    d = (d - datetime.timedelta(days=d.day)).replace(
+                        hour=23, minute=59, second=59
+                    )
                 else:
                     days = _last_day_of_month(year, month)
-                    d += relativedelta(days=(days - d.day + 1), hour=0, minute=0, second=0)
+                    d = (d + datetime.timedelta(days=(days - d.day + 1))).replace(
+                        hour=0, minute=0, second=0
+                    )
                 return True, d
 
             candidates.sort()
             diff_day = (candidates[-1] if is_prev else candidates[0]) - d.day
             if diff_day != 0:
                 if is_prev:
-                    d += relativedelta(days=diff_day, hour=23, minute=59, second=59)
+                    d = (d + datetime.timedelta(days=diff_day)).replace(
+                        hour=23, minute=59, second=59
+                    )
                 else:
-                    d += relativedelta(days=diff_day, hour=0, minute=0, second=0)
+                    d = (d + datetime.timedelta(days=diff_day)).replace(
+                        hour=0, minute=0, second=0
+                    )
                 return True, d
             return False, d
 
@@ -718,19 +757,27 @@ class croniter:
 
             if not candidates:
                 if is_prev:
-                    d += relativedelta(days=-d.day, hour=23, minute=59, second=59)
+                    d = (d - datetime.timedelta(days=d.day)).replace(
+                        hour=23, minute=59, second=59
+                    )
                 else:
                     days = _last_day_of_month(year, month)
-                    d += relativedelta(days=(days - d.day + 1), hour=0, minute=0, second=0)
+                    d = (d + datetime.timedelta(days=(days - d.day + 1))).replace(
+                        hour=0, minute=0, second=0
+                    )
                 return True, d
 
             candidates.sort()
             diff_day = (candidates[-1] if is_prev else candidates[0]) - d.day
             if diff_day != 0:
                 if is_prev:
-                    d += relativedelta(days=diff_day, hour=23, minute=59, second=59)
+                    d = (d + datetime.timedelta(days=diff_day)).replace(
+                        hour=23, minute=59, second=59
+                    )
                 else:
-                    d += relativedelta(days=diff_day, hour=0, minute=0, second=0)
+                    d = (d + datetime.timedelta(days=diff_day)).replace(
+                        hour=0, minute=0, second=0
+                    )
                 return True, d
             return False, d
 
@@ -741,9 +788,13 @@ class croniter:
                 diff_hour = nearest_diff_method(d.hour, expanded[HOUR_FIELD], 24)
                 if diff_hour is not None and diff_hour != 0:
                     if is_prev:
-                        d += relativedelta(hours=diff_hour, minute=59, second=59)
+                        d = (d + datetime.timedelta(hours=diff_hour)).replace(
+                            minute=59, second=59
+                        )
                     else:
-                        d += relativedelta(hours=diff_hour, minute=0, second=0)
+                        d = (d + datetime.timedelta(hours=diff_hour)).replace(
+                            minute=0, second=0
+                        )
                     return True, d
             return False, d
 
@@ -754,9 +805,9 @@ class croniter:
                 diff_min = nearest_diff_method(d.minute, expanded[MINUTE_FIELD], 60)
                 if diff_min is not None and diff_min != 0:
                     if is_prev:
-                        d += relativedelta(minutes=diff_min, second=59)
+                        d = (d + datetime.timedelta(minutes=diff_min)).replace(second=59)
                     else:
-                        d += relativedelta(minutes=diff_min, second=0)
+                        d = (d + datetime.timedelta(minutes=diff_min)).replace(second=0)
                     return True, d
             return False, d
 
@@ -767,10 +818,10 @@ class croniter:
                 except ValueError:
                     diff_sec = nearest_diff_method(d.second, expanded[SECOND_FIELD], 60)
                     if diff_sec is not None and diff_sec != 0:
-                        d += relativedelta(seconds=diff_sec)
+                        d = d + datetime.timedelta(seconds=diff_sec)
                         return True, d
             else:
-                d += relativedelta(second=0)
+                d = d.replace(second=0)
             return False, d
 
         procs = [
@@ -919,11 +970,9 @@ class croniter:
         """For a given year/month return a list of days in nth-day-of-month order.
         The last weekday of the month is always [-1].
         """
-        w = (day_of_week + 6) % 7
-        c = calendar.Calendar(w).monthdayscalendar(year, month)
-        if c[0][0] == 0:
-            c.pop(0)
-        return tuple(i[0] for i in c)
+        weekday = (day_of_week + 6) % 7  # cron day-of-week -> datetime weekday
+        first = 1 + (weekday - datetime.date(year, month, 1).weekday()) % 7
+        return tuple(range(first, _last_day_of_month(year, month) + 1, 7))
 
     @staticmethod
     def _get_nearest_weekday(year, month, day):
