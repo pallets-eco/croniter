@@ -1145,9 +1145,11 @@ class croniter:
                         for _val in (low, high)
                     )
 
-                    if max(low, high) > max(
-                        cls.RANGES[field_index][0], cls.RANGES[field_index][1]
-                    ):
+                    # Check the low end too: an equal range is widened to the whole
+                    # field and a reversed one skips its high end below, so neither
+                    # bound is otherwise re-checked ("0-0" and "6-0" as months).
+                    field_min, field_max = cls.RANGES[field_index]
+                    if min(low, high) < field_min or max(low, high) > field_max:
                         raise CroniterBadCronError(f"{expr_format} is out of bands")
 
                     # "{start}/{step}" normalizes to "{start}-{max}/{step}", so when
