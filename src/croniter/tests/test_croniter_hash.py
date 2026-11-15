@@ -309,6 +309,31 @@ class CroniterWordAliasTest(CroniterHashBase):
         self.assertEqual(obj_annually.get_next(datetime), obj_yearly.get_next(datetime))
         self.assertEqual(obj_annually.get_next(datetime), obj_yearly.get_next(datetime))
 
+    def test_hash_word_second_at_beginning(self):
+        """second_at_beginning must not reorder the hashed expansion of a keyword"""
+        for keyword in (
+            "@midnight",
+            "@hourly",
+            "@daily",
+            "@weekly",
+            "@monthly",
+            "@yearly",
+            "@annually",
+        ):
+            with self.subTest(keyword=keyword):
+                obj = croniter(keyword, self.epoch, hash_id=self.hash_id)
+                obj_sab = croniter(
+                    keyword, self.epoch, hash_id=self.hash_id, second_at_beginning=True
+                )
+                self.assertEqual(obj_sab.expanded, obj.expanded)
+                for _ in range(3):
+                    self.assertEqual(obj_sab.get_next(datetime), obj.get_next(datetime))
+        # @hourly used to fire every minute of one weekday
+        obj = croniter("@hourly", self.epoch, hash_id=self.hash_id, second_at_beginning=True)
+        first = obj.get_next(datetime)
+        self.assertEqual(first, datetime(2020, 1, 1, 0, 10, 32))
+        self.assertEqual(obj.get_next(datetime), first + timedelta(hours=1))
+
 
 class CroniterHashExpanderBase(base.TestCase):
     def setUp(self):
