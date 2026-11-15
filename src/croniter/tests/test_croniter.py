@@ -228,6 +228,30 @@ class CroniterTest(base.TestCase):
             [(2026, 2, 22), (2026, 2, 15), (2026, 2, 8)],
         )
 
+    def test_date_arithmetic_past_calendar_bounds_raises_croniter_error(self):
+        # Searching past datetime.max or before datetime.min must surface the
+        # documented CroniterBadDateError, not a bare OverflowError or ValueError.
+        for expr in ("* * * * *", "0 0 1 * *"):
+            itr = croniter(expr, datetime(9999, 12, 31, 23, 59))
+            with self.assertRaises(CroniterBadDateError, msg=expr):
+                itr.get_next(datetime)
+
+            itr = croniter(expr, datetime(1, 1, 1, 0, 0))
+            with self.assertRaises(CroniterBadDateError, msg=expr):
+                itr.get_prev(datetime)
+
+    def test_year_wrap_past_calendar_bounds_raises_croniter_error(self):
+        # The next leap day after 9996-02-29 is in 10004, past datetime.max.
+        itr = croniter("0 0 29 2 *", datetime(9996, 3, 1))
+        with self.assertRaises(CroniterBadDateError) as ctx:
+            itr.get_next(datetime)
+        self.assertEqual(str(ctx.exception), "failed to find next date")
+
+        itr = croniter("0 0 29 2 *", datetime(4, 2, 29))
+        with self.assertRaises(CroniterBadDateError) as ctx:
+            itr.get_prev(datetime)
+        self.assertEqual(str(ctx.exception), "failed to find prev date")
+
     def test_impossible_day_of_month_alone_still_raises(self):
         # With no day-of-week to fall back on there really is no such date.
         for expr in ("0 0 31 2 *", "0 0 30 2 *"):

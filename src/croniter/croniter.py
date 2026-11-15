@@ -569,6 +569,26 @@ class croniter:
         nth_weekday_of_month: dict[int, set[int]],
         is_prev: bool,
     ) -> datetime.datetime:
+        # Date arithmetic past datetime.max or before datetime.min fails with
+        # a bare OverflowError or ValueError from the datetime/dateutil layer.
+        # That is just an exhausted search, so report it the same way as any
+        # other unsatisfiable schedule.
+        try:
+            return self._calc_inner(now, expanded, nth_weekday_of_month, is_prev)
+        except CroniterBadDateError:
+            raise
+        except (OverflowError, ValueError):
+            if is_prev:
+                raise CroniterBadDateError("failed to find prev date") from None
+            raise CroniterBadDateError("failed to find next date") from None
+
+    def _calc_inner(
+        self,
+        now: datetime.datetime,
+        expanded: list[ExpandedExpression],
+        nth_weekday_of_month: dict[int, set[int]],
+        is_prev: bool,
+    ) -> datetime.datetime:
         if is_prev:
             nearest_diff_method = self._get_prev_nearest_diff
             offset = relativedelta(microseconds=-1)
