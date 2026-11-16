@@ -4,6 +4,11 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+Features and Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~~
+- Parse cron expressions faster: a bare ``*``, a plain number and the values that a
+  range or a step expands to no longer go through the token regexes. [@g4lb]
+
 
 7.0.0 (2026-11-08)
 ------------------

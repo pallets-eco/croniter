@@ -2537,6 +2537,13 @@ class CroniterTest(base.TestCase):
         self.assertRaises(CroniterBadCronError, croniter, "0 0 0 0 0")
         self.assertRaises(CroniterBadCronError, croniter, "0 0 0 1 0")
 
+    def test_range_values_out_of_field(self):
+        # Each value of a range is checked against the field, like a single value.
+        for expr in ["0 0 0-5 * *", "0 0 * 0-3 *", "0 0 0-5 * * *"]:
+            with self.assertRaises(CroniterBadCronError) as ctx:
+                croniter(expr)
+            self.assertEqual(str(ctx.exception), f"[{expr}] is not acceptable, out of range")
+
     def test_issue280(self):
         # day-of-month 0 must be rejected in the seconds and years forms too,
         # not silently rewritten to 1 like the 5-field form was before #9
