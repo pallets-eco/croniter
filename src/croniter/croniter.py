@@ -106,6 +106,8 @@ YEAR_FIELDS = (
 )
 
 step_search_re = re.compile(r"^([^-]+)-([^-/]+)(/(\d+))?$", re.ASCII)
+star_step_re = re.compile(r"^\*(\/.+)$")
+start_step_re = re.compile(r"^(.+)\/(.+)$")
 only_int_re = re.compile(r"^\d+$", re.ASCII)
 # ``str.split()`` also splits on Unicode whitespace (no-break space, ideographic
 # space, ...), which cron does not treat as a field separator.
@@ -1041,6 +1043,21 @@ class croniter:
                 e = e_list.pop()
                 nth = None
 
+                # Plain numbers, and the ints that a range expansion below adds,
+                # need only the alias and the bounds checks. A bare "*" needs no
+                # parsing at all.
+                if isinstance(e, int) or (e.isascii() and e.isdigit()):
+                    t = cls.value_alias(int(e), field_index, expressions)
+                    if t < cls.RANGES[field_index][0] or t > cls.RANGES[field_index][1]:
+                        raise CroniterBadCronError(
+                            f"[{expr_format}] is not acceptable, out of range"
+                        )
+                    res.append(t)
+                    continue
+                if e == "*":
+                    res.append(e)
+                    continue
+
                 if field_index == DOW_FIELD:
                     # Handle special case in the dow expression: 2#3, l3
                     special_dow_rem = special_dow_re.match(str(e))
@@ -1086,8 +1103,7 @@ class croniter:
 
                 # Before matching step_search_re, normalize "*" to "{min}-{max}".
                 # Example: in the minute field, "*/5" normalizes to "0-59/5"
-                t = re.sub(
-                    r"^\*(\/.+)$",
+                t = star_step_re.sub(
                     r"%d-%d\1" % (cls.RANGES[field_index][0], cls.RANGES[field_index][1]),
                     str(e),
                 )
@@ -1103,7 +1119,7 @@ class croniter:
                     # Before matching step_search_re,
                     # normalize "{start}/{step}" to "{start}-{max}/{step}".
                     # Example: in the minute field, "10/5" normalizes to "10-59/5"
-                    t = re.sub(r"^(.+)\/(.+)$", r"\1-%d/\2" % (cls.RANGES[field_index][1]), str(e))
+                    t = start_step_re.sub(r"\1-%d/\2" % (cls.RANGES[field_index][1]), str(e))
                     m = step_search_re.search(t)
                     start_with_step = bool(m)
 
