@@ -2547,6 +2547,32 @@ class CroniterTest(base.TestCase):
         self.assertRaises(CroniterBadCronError, croniter, "0 0 0 0 * * *", datetime(2024, 3, 10))
         self.assertFalse(croniter.is_valid("0 0 0 * * *"))
 
+    def test_range_low_bound_below_field_minimum(self):
+        # An equal range is widened to the whole field and a reversed range skips
+        # its high end, so a bound below the field minimum used to slip through:
+        # "0-0" as a month ran every month instead of being rejected like "0".
+        for expr in (
+            "0 0 * 0-0 *",
+            "0 0 * 0-0/2 *",
+            "0 0 * 6-0 *",
+            "0 0 0-0 * *",
+            "0 0 5-0 * *",
+            "0 0 0-0 * * 0",
+            "0 0 1 1 * 0 1960-1960",
+            "0 0 1 1 * 0 2000-1960",
+        ):
+            self.assertFalse(croniter.is_valid(expr), expr)
+            self.assertRaises(CroniterBadCronError, croniter, expr)
+        # bounds inside the field keep working, including day-of-week 7 and L
+        for expr in (
+            "* * * * 5-7",
+            "* * * * 7-1",
+            "* * 5-L * *",
+            "* * * apr-jan *",
+            "* * * jan-jan *",
+        ):
+            self.assertTrue(croniter.is_valid(expr), expr)
+
     def test_issue_k11(self):
         now = datetime(2019, 1, 14, 11, 0, 59, tzinfo=zoneinfo.ZoneInfo("America/New_York"))
         nextnow = croniter("* * * * * ").next(datetime, start_time=now)

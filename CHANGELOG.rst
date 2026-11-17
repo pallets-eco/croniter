@@ -4,6 +4,14 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+Bugfixes
+~~~~~~~~
+- Reject ranges whose low bound lies below the field minimum, such as month ``0-0``,
+  day-of-month ``5-0`` or year ``1960-1960``. Only the upper bound was checked; an equal
+  range is widened to the whole field and a reversed range skips its high end, so these
+  passed ``is_valid`` and ran as ``*`` or a wrapped range while ``0`` or ``1960`` alone
+  were rejected. They now raise ``CroniterBadCronError``.
+
 
 7.0.0 (2026-11-08)
 ------------------
