@@ -380,6 +380,14 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n2.month, 9)
         self.assertEqual(n2.day, 30)
 
+    def test_last_day_of_month_in_list_of_31_entries(self):
+        # "L" is not a day number, so 30 days plus "L" must not collapse to "*".
+        itr = croniter("0 0 2-31,L * *", datetime(2024, 1, 30))
+        days = [itr.get_next(datetime) for _ in range(3)]
+        self.assertEqual([(d.month, d.day) for d in days], [(1, 31), (2, 2), (2, 3)])
+        self.assertFalse(croniter.match("0 0 1-29,31,L * *", datetime(2024, 1, 30)))
+        self.assertTrue(croniter.match("0 0 1-29,31,L * *", datetime(2024, 4, 30)))
+
     def test_prev_last_day_of_month(self):
         base = datetime(2009, 12, 31, hour=20)
         itr = croniter("0 0 l * *", base)
