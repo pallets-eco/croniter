@@ -226,6 +226,54 @@ class CroniterRangeTest(base.TestCase):
             [(2, 1), (2, 8), (2, 15), (2, 22)],
         )
 
+    def test_expand_from_start_time_phases_on_the_requested_start(self):
+        # The microsecond the ends-inclusive nudge takes off the start used to reach
+        # the expansion, so */15 phased on minute 59 of the previous day.
+        start = datetime(2024, 1, 1, 0, 0)
+        stop = datetime(2024, 1, 1, 1, 0)
+        fwd = list(croniter_range(start, stop, "*/15 * * * *", expand_from_start_time=True))
+        self.assertEqual(
+            fwd,
+            [
+                datetime(2024, 1, 1, 0, 0),
+                datetime(2024, 1, 1, 0, 15),
+                datetime(2024, 1, 1, 0, 30),
+                datetime(2024, 1, 1, 0, 45),
+                datetime(2024, 1, 1, 1, 0),
+            ],
+        )
+        self.assertEqual(
+            croniter("*/15 * * * *", start, expand_from_start_time=True).expanded[0],
+            [0, 15, 30, 45],
+        )
+
+    def test_expand_from_start_time_keeps_the_start_of_an_hour_cycle(self):
+        # Same shift one field up: hours phased on 23 and the interval came back
+        # empty although the start itself is a fire time.
+        start = datetime(2024, 1, 1, 0, 0)
+        stop = datetime(2024, 1, 1, 2, 0)
+        fwd = list(croniter_range(start, stop, "0 */5 * * *", expand_from_start_time=True))
+        self.assertEqual(fwd, [datetime(2024, 1, 1, 0, 0)])
+
+    def test_expand_from_start_time_with_excluded_ends(self):
+        # exclude_ends does not nudge the start, so this one was right before and
+        # has to stay right.
+        start = datetime(2024, 1, 1, 0, 7)
+        stop = datetime(2024, 1, 1, 1, 7)
+        fwd = list(
+            croniter_range(
+                start, stop, "*/15 * * * *", exclude_ends=True, expand_from_start_time=True
+            )
+        )
+        self.assertEqual(
+            fwd,
+            [
+                datetime(2024, 1, 1, 0, 22),
+                datetime(2024, 1, 1, 0, 37),
+                datetime(2024, 1, 1, 0, 52),
+            ],
+        )
+
     def test_year_range(self):
         start = datetime(2010, 1, 1)
         stop = datetime(2030, 1, 1)
