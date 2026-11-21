@@ -4,6 +4,10 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+- Reject a day-of-week literal mixed with an nth or last entry for the same weekday
+  (``5,5#3``, ``5,L5``) with ``CroniterUnsupportedSyntaxError``, as ``5,6#3`` already
+  is. The literal was dropped, so ``5,5#3`` fired on the 3rd Friday only instead of
+  every Friday.
 
 7.0.0 (2026-11-08)
 ------------------
