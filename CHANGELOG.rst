@@ -4,6 +4,15 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+Bugfixes
+~~~~~~~~
+- Fix ``croniter_range(..., expand_from_start_time=True)`` phasing on one
+  microsecond before the requested start. The nudge that makes the ends
+  inclusive reached the expansion, so ``*/15 * * * *`` from midnight came back
+  as 00:14, 00:29, 00:44, 00:59 instead of 00:00, 00:15, 00:30, 00:45, and
+  ``0 */5 * * *`` phased on hour 23 and could return nothing at all.
+  [@Raghuvardhan-Reddy78]
+
 
 7.0.0 (2026-11-08)
 ------------------
