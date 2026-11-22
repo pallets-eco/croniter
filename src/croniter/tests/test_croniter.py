@@ -259,6 +259,44 @@ class CroniterTest(base.TestCase):
         with self.assertRaises(CroniterBadDateError):
             itr.get_next(datetime)
 
+    def test_nth_weekday_with_restricted_day_of_month_is_an_intersection(self):
+        # 'MON-FRI#1' already fixes the weekday set, so both halves of the split
+        # are the same query and day_or makes no difference. 2018-01-06 and
+        # 2018-01-07 are a Saturday and a Sunday, so they are not options even
+        # though they are inside "1-7".
+        for day_or in (True, False):
+            itr = croniter("30 23 1-7 JAN MON-FRI#1", datetime(2018, 1, 1), day_or=day_or)
+            got = [itr.get_next(datetime).strftime("%m-%d") for _ in range(5)]
+            self.assertEqual(got, ["01-01", "01-02", "01-03", "01-04", "01-05"], msg=day_or)
+
+    def test_nth_weekday_with_restricted_day_of_month_keeps_the_weekday_half(self):
+        # With a single weekday the day-of-month half is the narrower query, so
+        # the default union still fires in the months where the second Tuesday
+        # falls after the 10th, while day_or=False keeps the intersection.
+        expr = "0 0 1-10 * tue#2"
+        itr = croniter(expr, datetime(2024, 1, 1))
+        got = [itr.get_next(datetime).strftime("%Y-%m-%d") for _ in range(3)]
+        self.assertEqual(got, ["2024-01-09", "2024-02-13", "2024-03-12"])
+
+        itr = croniter(expr, datetime(2024, 1, 1), day_or=False)
+        got = [itr.get_next(datetime).strftime("%Y-%m-%d") for _ in range(3)]
+        self.assertEqual(got, ["2024-01-09", "2024-04-09", "2024-07-09"])
+
+    def test_nearest_weekday_with_restricted_day_of_week_is_an_intersection(self):
+        # Positive counterpart of the raising case above: '15w' is kept in both
+        # halves, so day_or=False only fires when the nearest weekday to the 15th
+        # is a Monday (2024-09-15 is a Sunday, so that one moves to the 16th).
+        expr = "0 0 15w * 1"
+        itr = croniter(expr, datetime(2024, 1, 1), day_or=False)
+        got = [itr.get_next(datetime).strftime("%Y-%m-%d") for _ in range(3)]
+        self.assertEqual(got, ["2024-01-15", "2024-04-15", "2024-07-15"])
+
+        # Under the default the day-of-week half is still there, so the schedule
+        # is every nearest weekday to the 15th.
+        itr = croniter(expr, datetime(2024, 1, 1))
+        got = [itr.get_next(datetime).strftime("%Y-%m-%d") for _ in range(3)]
+        self.assertEqual(got, ["2024-01-15", "2024-02-15", "2024-03-15"])
+
     def test_both_union_sides_unsatisfiable_reports_direction(self):
         # A year field can rule out both halves at once. The error names the
         # direction that was searched.

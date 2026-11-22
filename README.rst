@@ -210,6 +210,52 @@ by combining a day range with a weekday::
     >>> print(iter.get_next(datetime))   # 2024-10-01 01:01:00
     >>> print(iter.get_next(datetime))   # 2024-11-05 01:01:00
 
+Nth weekday and nearest weekday
+-------------------------------
+
+``#`` and ``W`` are carried by a constraint of their own, not by the day-of-week and
+day-of-month fields. Both halves of the split above keep that constraint, so a ``#`` or
+``W`` combination is never widened or narrowed silently, and one with no date in it
+raises ``CroniterBadDateError`` instead of falling back to the other field.
+
+When the ``#`` expression already fixes the weekday set, the two halves are the same
+query and ``day_or`` makes no difference. January 6th and 7th 2018 are a Saturday and a
+Sunday, so neither is an option even though both are inside ``1-7``::
+
+    >>> for day_or in (True, False):
+    ...     iter = croniter('30 23 1-7 JAN MON-FRI#1', datetime(2018, 1, 1), day_or=day_or)
+    ...     print([iter.get_next(datetime).strftime('%m-%d') for _ in range(5)])
+    ['01-01', '01-02', '01-03', '01-04', '01-05']
+    ['01-01', '01-02', '01-03', '01-04', '01-05']
+
+The first Mon-Fri of January always falls on days 1-5, so restricting the day-of-month
+to ``8-9`` leaves no date at all, and that is reported rather than ignored::
+
+    >>> iter = croniter('30 23 8-9 JAN MON-FRI#1', datetime(2026, 1, 1))
+    >>> iter.get_next(datetime)   # raises CroniterBadDateError
+
+``W`` works the same way: with ``day_or=False`` the nearest weekday has to fall on the
+weekday named as well::
+
+    >>> iter = croniter('0 0 15w * 1', datetime(2024, 1, 1), day_or=False)
+    >>> print([iter.get_next(datetime).strftime('%Y-%m-%d') for _ in range(3)])
+    ['2024-01-15', '2024-04-15', '2024-07-15']
+
+    >>> iter = croniter('0 0 31w 2 0', datetime(2026, 1, 1))
+    >>> iter.get_next(datetime)   # raises CroniterBadDateError
+
+When ``#`` names a single weekday, the day-of-month half is the narrower of the two,
+so under the default ``day_or=True`` a day range only limits that half and the second
+Tuesday of the following month still fires. ``day_or=False`` gives the strict
+intersection::
+
+    >>> iter = croniter('0 0 1-10 * tue#2', datetime(2024, 1, 1))
+    >>> print([iter.get_next(datetime).strftime('%Y-%m-%d') for _ in range(3)])
+    ['2024-01-09', '2024-02-13', '2024-03-12']
+    >>> iter = croniter('0 0 1-10 * tue#2', datetime(2024, 1, 1), day_or=False)
+    >>> print([iter.get_next(datetime).strftime('%Y-%m-%d') for _ in range(3)])
+    ['2024-01-09', '2024-04-09', '2024-07-09']
+
 Vixie cron bug compatibility
 ----------------------------
 

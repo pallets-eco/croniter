@@ -4,6 +4,15 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+Testing and Documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+- Document how ``#`` and ``W`` combine with a restricted day-of-month or day-of-week: they
+  are kept in a constraint of their own, so both halves of the ``day_or`` split carry
+  them, an unsatisfiable combination raises ``CroniterBadDateError`` instead of falling
+  back to the other field, and ``day_or=False`` gives the strict intersection. The
+  positive cases of those combinations are now covered by tests; only the raising ones
+  were. [#249, @lyn1dev]
+
 
 7.0.0 (2026-11-08)
 ------------------
