@@ -1012,6 +1012,7 @@ class croniter:
         expanded = []
         nth_weekday_of_month = {}
         nearest_weekday = set()
+        dow_literals = set()
 
         for field_index, expr in enumerate(expressions):
             for expanderid, expander in EXPANDERS.items():
@@ -1269,6 +1270,8 @@ class croniter:
                         if t not in nth_weekday_of_month:
                             nth_weekday_of_month[t] = set()
                         nth_weekday_of_month[t].add(nth)
+                    elif field_index == DOW_FIELD and t != "*":
+                        dow_literals.add(t)
 
             res = set(res)
             res = sorted(res, key=lambda i: f"{i:02}" if isinstance(i, int) else i)
@@ -1288,6 +1291,11 @@ class croniter:
             dow_expanded_set = set(expanded[DOW_FIELD])
             dow_expanded_set = dow_expanded_set.difference(nth_weekday_of_month.keys())
             dow_expanded_set.discard("*")
+            # A literal weekday that also has a '#n' or 'L' entry ("5,5#3") is removed
+            # by the difference above, and the nth entry then replaces it: the
+            # schedule fires on the 3rd Friday only. Reject it like "5,6#3".
+            if len(dow_literals) != cls.LEN_MEANS_ALL[DOW_FIELD]:
+                dow_expanded_set |= dow_literals & nth_weekday_of_month.keys()
             # Skip: if it's all weeks instead of wildcard
             if dow_expanded_set and len(set(expanded[DOW_FIELD])) != cls.LEN_MEANS_ALL[DOW_FIELD]:
                 raise CroniterUnsupportedSyntaxError(

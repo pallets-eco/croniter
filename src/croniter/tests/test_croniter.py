@@ -2188,6 +2188,16 @@ class CroniterTest(base.TestCase):
         with self.assertRaises(CroniterUnsupportedSyntaxError):
             self.assertListEqual(getn(cron_c, 5), expect_c)
 
+    def test_mixup_same_dow_literal_and_nth(self):
+        # "5,5#3" names every Friday, but the literal 5 used to be absorbed by the
+        # 5#3 entry and only the 3rd Friday fired. Reject it like "5,6#3".
+        for expr in ("0 0 * * 5,5#3", "0 0 * * 5,L5", "0 0 * * fri,fri#3", "0 0 * * 4-5,5#3"):
+            with self.assertRaises(CroniterUnsupportedSyntaxError):
+                croniter(expr)
+            self.assertFalse(croniter.is_valid(expr))
+        # A literal list covering the whole week is still accepted.
+        self.assertTrue(croniter.is_valid("0 0 * 1 0-6,sat#3"))
+
     def test_lwom_mixup_firstlast_sat(self):
         # First saturday, last saturday
         start = datetime(2021, 3, 1)
