@@ -1301,8 +1301,11 @@ class croniter:
             # to reject impossible combinations like "0 0 31 2 *" (Feb 31st).
             days = expanded[DAY_FIELD]
             months = expanded[MONTH_FIELD]
-            if days != ["*"] and days != ["l"] and months != ["*"]:
-                int_days = [d for d in days if isinstance(d, int)]
+            # Only a literal day-of-month can name a day a month is too short for.
+            # "l" is the month's own last day, and a "W" day is clamped to it, so a
+            # field holding either always resolves, whatever the month.
+            if "l" not in days and days != ["*"] and months != ["*"]:
+                int_days = [d for d in days if isinstance(d, int) and d not in nearest_weekday]
                 int_months = [m for m in months if isinstance(m, int)]
                 if int_days and int_months:
                     # Determine max days per month, accounting for leap years
