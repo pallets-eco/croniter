@@ -997,6 +997,10 @@ class croniter:
             efl = expr_aliases[efl][hash_id_expr]
         except KeyError:
             pass
+        else:
+            # The hashed expansions put seconds in the 6th field. That is our
+            # spelling, not the caller's, so second_at_beginning does not apply.
+            second_at_beginning = False
 
         expressions = field_re.findall(efl)
 

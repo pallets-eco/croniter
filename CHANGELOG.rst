@@ -4,6 +4,14 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+Bugfixes
+~~~~~~~~
+- Fix hashed ``@`` keywords firing at the wrong times with ``second_at_beginning=True``.
+  With a ``hash_id``, ``@hourly`` expands to ``H * * * * H``, which has seconds last, but
+  ``second_at_beginning`` moved its first field into the seconds slot, so every field
+  shifted by one: ``@hourly`` fired every minute of one weekday and ``@yearly`` fired
+  every week. The keyword expansion is no longer reordered. [@Raghuvardhan-Reddy78]
+
 
 7.0.0 (2026-11-08)
 ------------------
