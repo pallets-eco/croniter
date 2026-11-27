@@ -1386,6 +1386,25 @@ class CroniterTest(base.TestCase):
         # strict_year without strict has no effect (backward compatible)
         self.assertTrue(croniter.is_valid("0 0 31 2 *", strict_year=2024))
 
+    def test_is_valid_strict_last_day_and_nearest_weekday(self):
+        # "l" is the month's own last day and a "W" day is clamped to it, so a day
+        # field holding either resolves in every month and stays valid. Each
+        # expression below has a fire time, which is what the check used to reject.
+        base = datetime(2024, 1, 1)
+        for expr, first in (
+            ("0 0 30,l 2 *", datetime(2024, 2, 29)),
+            ("0 0 31,l 2 *", datetime(2024, 2, 29)),
+            ("0 0 31w 2 *", datetime(2024, 2, 29)),
+            ("0 0 31w 4 *", datetime(2024, 4, 30)),
+            ("0 0 31w 2,4 *", datetime(2024, 2, 29)),
+        ):
+            self.assertTrue(croniter.is_valid(expr, strict=True), expr)
+            self.assertEqual(croniter(expr, base).get_next(datetime), first, expr)
+        # A literal day the month is too short for is still rejected
+        self.assertFalse(croniter.is_valid("0 0 30 2 *", strict=True))
+        self.assertFalse(croniter.is_valid("0 0 30,31 2 *", strict=True))
+        self.assertFalse(croniter.is_valid("0 0 31 4 *", strict=True))
+
     def test_nearest_weekday_basic(self):
         # 15W: nearest weekday to the 15th
         # Jan 2024: 15th is Monday -> fires on 15th

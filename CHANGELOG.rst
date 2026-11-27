@@ -4,6 +4,15 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+Bugfixes
+~~~~~~~~
+- ``is_valid(..., strict=True)`` no longer rejects a day-of-month field that holds ``l`` or a
+  ``W`` day. ``l`` is the month's own last day and a ``W`` day is clamped to it, so neither can
+  name a day a month is too short for, but both were cross-validated as literal days:
+  ``0 0 30,l 2 *`` and ``0 0 31W 2 *`` were refused although both fire on February 29th. A
+  literal day the month is too short for, such as ``0 0 30 2 *``, is still rejected.
+  [@Raghuvardhan-Reddy78]
+
 
 7.0.0 (2026-11-08)
 ------------------
