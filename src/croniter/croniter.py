@@ -1517,6 +1517,12 @@ def croniter_range(
         auto_rt = float
     if ret_type is None:
         ret_type = auto_rt
+    # The nudge below belongs to the iteration, not to the expression: it puts the
+    # cursor one microsecond outside the interval so that a fire time landing on a
+    # bound is still returned. ``expand_from_start_time`` takes the phase of a
+    # stepped field from the start time, so it has to read the start time the
+    # caller asked for, not the nudged one.
+    expand_start = start
     if not exclude_ends:
         ms1 = relativedelta(microseconds=1)
         if start < stop:  # Forward (normal) time order
@@ -1528,13 +1534,15 @@ def croniter_range(
     year_span = math.floor(abs(stop.year - start.year)) + 1
     ic = _croniter(
         expr_format,
-        start,
+        expand_start,
         ret_type=datetime.datetime,
         day_or=day_or,
         max_years_between_matches=year_span,
         second_at_beginning=second_at_beginning,
         expand_from_start_time=expand_from_start_time,
     )
+    # Expanded, so the cursor can move to the nudged bound, the way match_range does.
+    ic.set_current(start, force=True)
     # define a continue (cont) condition function and step function for the main while loop
     if start < stop:  # Forward
 
