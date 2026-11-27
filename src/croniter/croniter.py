@@ -1272,7 +1272,9 @@ class croniter:
 
             res = set(res)
             res = sorted(res, key=lambda i: f"{i:02}" if isinstance(i, int) else i)
-            if len(res) == cls.LEN_MEANS_ALL[field_index]:
+            # "l" is not one of the field's values, so it must not count towards
+            # them: "2-31,L" has 31 entries but does not cover day 1.
+            if len(res) == cls.LEN_MEANS_ALL[field_index] and "l" not in res:
                 # Make sure the wildcard is used in the correct way (avoid over-optimization)
                 if (field_index == DAY_FIELD and "*" not in expressions[DOW_FIELD]) or (
                     field_index == DOW_FIELD and "*" not in expressions[DAY_FIELD]

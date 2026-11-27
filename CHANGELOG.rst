@@ -4,6 +4,12 @@ Changelog
 7.0.1 (unreleased)
 ------------------
 
+Bugfixes
+~~~~~~~~
+- Fix a day-of-month list of 30 days plus ``L`` being collapsed to ``*``. ``L``
+  was counted as one of the 31 day values, so ``0 0 2-31,L * *`` fired on the
+  1st of every month and ``0 0 1-29,31,L * *`` on the 30th of 31-day months.
+  [@Raghuvardhan-Reddy78]
 
 7.0.0 (2026-11-08)
 ------------------
