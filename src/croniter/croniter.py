@@ -1274,8 +1274,20 @@ class croniter:
             res = sorted(res, key=lambda i: f"{i:02}" if isinstance(i, int) else i)
             if len(res) == cls.LEN_MEANS_ALL[field_index]:
                 # Make sure the wildcard is used in the correct way (avoid over-optimization)
-                if (field_index == DAY_FIELD and "*" not in expressions[DOW_FIELD]) or (
-                    field_index == DOW_FIELD and "*" not in expressions[DAY_FIELD]
+                #
+                # For the day fields the full range means "restricted" (a union
+                # operand), not "unrestricted": demoting e.g. a ``*/1`` or
+                # ``1-31`` day-of-month to '*' would erase its restricted status
+                # and silently turn the POSIX DOM/DOW union into the other field
+                # alone -- the opt-in implement_cron_bug behaviour. So a day
+                # field is demoted only when the *other* day field is written
+                # exactly as '*', i.e. is genuinely unrestricted. Matching on the
+                # other field containing a star character ('*' in '*/2') demoted
+                # it for star-*spelled* restricted fields too, which is #309's
+                # bug: '0 0 */1 * */2' then fired only on the */2 weekdays
+                # instead of every day.
+                if (field_index == DAY_FIELD and expressions[DOW_FIELD] != "*") or (
+                    field_index == DOW_FIELD and expressions[DAY_FIELD] != "*"
                 ):
                     pass
                 else:

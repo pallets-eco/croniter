@@ -288,6 +288,57 @@ class CroniterTest(base.TestCase):
         self.assertEqual(n3.day, 1)
         self.assertEqual(n3.year, 2010)
 
+    def test_day_or_union_survives_full_range_day_fields(self):
+        """A full-range day field keeps its restricted status for the union.
+
+        The "avoid over-optimization" guard in ``_expand`` used to demote a
+        full-range day-of-month/day-of-week expansion to ``'*'`` whenever the
+        other day field's raw expression merely contained a star (e.g.
+        ``*/2``). Demotion loses the restricted status that drives the DOM/DOW
+        union in ``_calc_next``, so ``0 0 */1 * */2`` silently fell back to
+        the day-of-week alone -- the opt-in ``implement_cron_bug`` behaviour --
+        instead of firing every day as POSIX cron and the documented default
+        require (https://github.com/pallets-eco/croniter/issues/309).
+        """
+        base = datetime(2025, 6, 1)
+
+        # dom */1 (== every day) OR dow */2 must fire every day.
+        itr = croniter("0 0 */1 * */2", base, ret_type=datetime)
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 2))
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 3))
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 4))
+
+        # The same schedule with the dow set spelled without a star unions
+        # correctly today and must keep doing so.
+        itr = croniter("0 0 */1 * 0,2,4,6", base, ret_type=datetime)
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 2))
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 3))
+
+        # An explicitly written full dom range is restricted in the same way.
+        itr = croniter("0 0 1-31 * */2", base, ret_type=datetime)
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 2))
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 3))
+
+        # The demotion also happened on the dow side: 0-6 is restricted, so
+        # the union of {1, 7, ...} with every weekday is every day.
+        itr = croniter("0 0 */6 * 0-6", base, ret_type=datetime)
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 2))
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 3))
+
+        # get_prev walked only the surviving side before the fix.
+        itr = croniter("0 0 */1 * */2", datetime(2025, 6, 15), ret_type=datetime)
+        self.assertEqual(itr.get_prev(), datetime(2025, 6, 14))
+        self.assertEqual(itr.get_prev(), datetime(2025, 6, 13))
+
+        # The documented opt-in AND behaviour of implement_cron_bug=True and
+        # the day_or=False intersection are both unchanged.
+        itr = croniter("0 0 */1 * */2", base, ret_type=datetime, implement_cron_bug=True)
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 3))
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 5))
+        itr = croniter("0 0 */1 * */2", base, ret_type=datetime, day_or=False)
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 3))
+        self.assertEqual(itr.get_next(), datetime(2025, 6, 5))
+
     def test_dom_dow_vixie_cron_bug(self):
         expr = "0 16 */2 * sat"
 
